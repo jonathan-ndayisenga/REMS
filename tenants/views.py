@@ -100,13 +100,51 @@ def tenant_delete(request, pk):
 def rent_roll(request):
     if not request.user.can_manage_tenants() and not request.user.can_access_finance():
         return HttpResponseForbidden()
-    buildings = request.user.get_buildings_qs()
-    tenants = Tenant.objects.filter(building__in=buildings, status='active').select_related('building')
+
+    all_buildings = request.user.get_buildings_qs()
+    building_filter = request.GET.get('building', '')
+    date_from       = request.GET.get('date_from', '')
+    date_to         = request.GET.get('date_to', '')
+    status_filter   = request.GET.get('status', '')  # 'overdue' | 'settled' | ''
+
+    tenants_qs = Tenant.objects.filter(
+        building__in=all_buildings, status='active'
+    ).select_related('building').order_by('building__name', 'full_name')
+
+    if building_filter:
+        tenants_qs = tenants_qs.filter(building_id=building_filter)
+    if date_from:
+        tenants_qs = tenants_qs.filter(lease_start__gte=date_from)
+    if date_to:
+        tenants_qs = tenants_qs.filter(lease_start__lte=date_to)
+
     rows = []
-    for t in tenants:
+    total_monthly     = Decimal('0')
+    total_outstanding = Decimal('0')
+
+    for t in tenants_qs:
         balance = t.get_balance()
-        rows.append({'tenant': t, 'balance': balance, 'overdue': balance > 0})
-    return render(request, 'tenants/rent_roll.html', {'rows': rows, 'buildings': buildings})
+        overdue = balance > 0
+        if status_filter == 'overdue' and not overdue:
+            continue
+        if status_filter == 'settled' and overdue:
+            continue
+        rows.append({'tenant': t, 'balance': balance, 'overdue': overdue})
+        total_monthly += t.monthly_rate
+        if overdue:
+            total_outstanding += balance
+
+    return render(request, 'tenants/rent_roll.html', {
+        'rows':              rows,
+        'buildings':         all_buildings,
+        'building_filter':   building_filter,
+        'date_from':         date_from,
+        'date_to':           date_to,
+        'status_filter':     status_filter,
+        'total_monthly':     total_monthly,
+        'total_outstanding': total_outstanding,
+        'total_tenants':     len(rows),
+    })
 
 
 @login_required

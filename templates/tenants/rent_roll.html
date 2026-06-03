@@ -2,30 +2,167 @@
 {% load humanize %}
 {% block title %}Rent Roll{% endblock %}
 {% block page_title %}Rent Roll{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-ghost btn-sm no-print">
+  <i class="fas fa-print"></i> Print
+</button>
+{% endblock %}
+
 {% block content %}
 <div class="card">
+
+  <!-- Filter bar — single row, no wrap -->
+  <div class="filter-bar no-print" style="flex-wrap:nowrap;gap:var(--sp-2);overflow-x:auto;">
+    <form method="get" style="display:contents;" id="rr-form">
+
+      <!-- Search -->
+      <div class="search-wrap" style="flex-shrink:0;">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text"
+               id="rr-search"
+               placeholder="Search tenant or room..."
+               data-search-table="rent-roll-table"
+               style="padding-left:28px;width:240px;">
+      </div>
+
+      <!-- Building -->
+      <select name="building" onchange="this.form.submit()" style="flex-shrink:0;width:140px;">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}
+        <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Status -->
+      <select name="status" onchange="this.form.submit()" style="flex-shrink:0;width:100px;">
+        <option value=""        {% if status_filter == ""        %}selected{% endif %}>All</option>
+        <option value="overdue" {% if status_filter == "overdue" %}selected{% endif %}>Overdue</option>
+        <option value="settled" {% if status_filter == "settled" %}selected{% endif %}>Settled</option>
+      </select>
+
+      <!-- Date range -->
+      <input type="date" name="date_from" value="{{ date_from }}"
+             title="Lease start from" style="flex-shrink:0;width:136px;">
+      <span style="font-size:11px;color:var(--text-faint);flex-shrink:0;">—</span>
+      <input type="date" name="date_to" value="{{ date_to }}"
+             title="Lease start to" style="flex-shrink:0;width:136px;">
+
+      <button type="submit" class="btn btn-primary btn-sm" style="flex-shrink:0;">Apply</button>
+
+      {% if date_from or date_to or building_filter or status_filter %}
+      <a href="{% url 'tenants:rent_roll' %}" class="btn btn-ghost btn-sm" style="flex-shrink:0;">Clear</a>
+      {% endif %}
+
+    </form>
+
+    <span class="filter-spacer" style="flex-shrink:0;"></span>
+    <span class="filter-summary" id="rr-count" style="flex-shrink:0;white-space:nowrap;">
+      {{ total_tenants }} tenant{{ total_tenants|pluralize }}
+    </span>
+  </div>
+
+  <!-- Table -->
   <div class="table-container">
-    <table class="rems-table">
-      <thead><tr><th>Tenant</th><th>Building</th><th>Room</th><th>Monthly Rate (UGX)</th><th>Lease Start</th><th>Balance (UGX)</th><th>Status</th></tr></thead>
+    <table class="rems-table" id="rent-roll-table" data-sortable>
+      <thead>
+        <tr>
+          <th data-sort>Tenant</th>
+          <th data-sort>Building</th>
+          <th>Room</th>
+          <th data-sort style="text-align:right;">Monthly Rate (UGX)</th>
+          <th data-sort>Lease Start</th>
+          <th data-sort style="text-align:right;">Balance (UGX)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
       <tbody>
         {% for row in rows %}
         <tr>
-          <td><a href="{% url 'tenants:detail' row.tenant.pk %}" style="font-weight:500;color:var(--navy);">{{ row.tenant.full_name }}</a></td>
-          <td>{{ row.tenant.building.name }}</td>
+          <td>
+            <a href="{% url 'tenants:detail' row.tenant.pk %}" class="fw-600 text-brand">
+              {{ row.tenant.full_name }}
+            </a>
+          </td>
+          <td class="text-muted">{{ row.tenant.building.name }}</td>
           <td><span class="badge badge-navy">{{ row.tenant.room_number }}</span></td>
-          <td class="money">{{ row.tenant.monthly_rate|floatformat:0|intcomma }}</td>
-          <td>{{ row.tenant.lease_start|date:"d M Y" }}</td>
-          <td class="money {% if row.balance > 0 %}text-credit{% else %}text-debit{% endif %}">
-            {% if row.balance > 0 %}<i class="fas fa-exclamation-circle" style="font-size:11px;"></i>{% else %}<i class="fas fa-check-circle" style="font-size:11px;"></i>{% endif %}
+          <td class="money text-right">{{ row.tenant.monthly_rate|floatformat:0|intcomma }}</td>
+          <td class="text-sub nowrap">{{ row.tenant.lease_start|date:"d M Y" }}</td>
+          <td class="money text-right fw-600 {% if row.balance > 0 %}text-credit{% else %}text-debit{% endif %}">
             {{ row.balance|floatformat:0|intcomma }}
           </td>
-          <td><span class="badge {% if row.overdue %}badge-danger{% else %}badge-success{% endif %}">{% if row.overdue %}Overdue{% else %}Settled{% endif %}</span></td>
+          <td>
+            {% if row.overdue %}
+            <span class="badge badge-red">
+              <span class="status-dot dot-red"></span> Overdue
+            </span>
+            {% else %}
+            <span class="badge badge-green">
+              <span class="status-dot dot-green"></span> Settled
+            </span>
+            {% endif %}
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No active tenants.</td></tr>
+        <tr class="empty-row">
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-scroll"></i></div>
+              <div class="empty-title">No tenants match your filters</div>
+              <div class="empty-sub">Try adjusting the date range, building, or status filter.</div>
+              <a href="{% url 'tenants:rent_roll' %}" class="btn btn-ghost">Clear Filters</a>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
+
+      {% if rows %}
+      <tfoot>
+        <tr>
+          <td colspan="3" class="fw-600">
+            {{ total_tenants }} tenant{{ total_tenants|pluralize }}
+          </td>
+          <td class="money tfoot-accent text-right">
+            {{ total_monthly|floatformat:0|intcomma }}
+          </td>
+          <td></td>
+          <td class="money tfoot-accent text-right">
+            {{ total_outstanding|floatformat:0|intcomma }}
+          </td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+
     </table>
   </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Keep counter in sync with live search */
+(function () {
+  const search  = document.getElementById('rr-search');
+  const counter = document.getElementById('rr-count');
+  const table   = document.getElementById('rent-roll-table');
+  if (!search || !table) return;
+
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    let visible = 0;
+    table.querySelectorAll('tbody tr:not(.empty-row)').forEach(row => {
+      const show = !q || row.textContent.toLowerCase().includes(q);
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    counter.textContent = visible + ' tenant' + (visible !== 1 ? 's' : '');
+
+    const emptyRow = table.querySelector('.empty-row');
+    if (emptyRow) emptyRow.style.display = visible === 0 && q ? '' : 'none';
+  });
+})();
+</script>
 {% endblock %}

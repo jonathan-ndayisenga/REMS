@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block topbar_actions %}<a href="{% url 'accounts:user_create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Create User</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td style="font-weight:500;">{{ u.get_full_name|default:u.username }}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted);">{{ u.username }}</td>
+          <td>
+            <span class="badge badge-navy">{{ u.get_role_display }}</span>
+            {% for extra in u.user_roles.all %}
+            <span class="badge badge-gold" style="margin-left:3px;">{{ extra.get_role_display }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ u.email|default:"—" }}</td>
+          <td><span class="badge {% if u.is_active %}badge-success{% else %}badge-muted{% endif %}">{% if u.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+          <td>
+            <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>
+            {% if user.can_delete and u != user %}<a href="{% url 'accounts:user_delete' u.pk %}" class="btn btn-outline btn-sm" style="color:var(--danger);"><i class="fas fa-trash"></i></a>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

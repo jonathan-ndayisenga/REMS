@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Rent Roll{% endblock %}
+{% block page_title %}Rent Roll{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr><th>Tenant</th><th>Building</th><th>Room</th><th>Monthly Rate (UGX)</th><th>Lease Start</th><th>Balance (UGX)</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="{% url 'tenants:detail' row.tenant.pk %}" style="font-weight:500;color:var(--navy);">{{ row.tenant.full_name }}</a></td>
+          <td>{{ row.tenant.building.name }}</td>
+          <td><span class="badge badge-navy">{{ row.tenant.room_number }}</span></td>
+          <td class="money">{{ row.tenant.monthly_rate|floatformat:0|intcomma }}</td>
+          <td>{{ row.tenant.lease_start|date:"d M Y" }}</td>
+          <td class="money {% if row.balance > 0 %}text-credit{% else %}text-debit{% endif %}">
+            {% if row.balance > 0 %}<i class="fas fa-exclamation-circle" style="font-size:11px;"></i>{% else %}<i class="fas fa-check-circle" style="font-size:11px;"></i>{% endif %}
+            {{ row.balance|floatformat:0|intcomma }}
+          </td>
+          <td><span class="badge {% if row.overdue %}badge-danger{% else %}badge-success{% endif %}">{% if row.overdue %}Overdue{% else %}Settled{% endif %}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No active tenants.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

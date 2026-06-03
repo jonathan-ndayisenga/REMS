@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Cashbook{% endblock %}
+{% block page_title %}Cashbook{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600;">From</label>
+      <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600;">To</label>
+      <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+      <select name="building">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if request.GET.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; Filter</button>
+    </form>
+    <div style="margin-left:auto;display:flex;gap:20px;align-items:center;">
+      <span style="font-size:12px;">Total In: <strong class="money text-debit">UGX {{ total_debit|floatformat:0|intcomma }}</strong></span>
+      <span style="font-size:12px;">Total Out: <strong class="money text-credit">UGX {{ total_credit|floatformat:0|intcomma }}</strong></span>
+      <span style="font-size:12px;">Net: <strong class="money">UGX {{ net|floatformat:0|intcomma }}</strong></span>
+    </div>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr><th>Date</th><th>Description</th><th>Building</th><th>Type</th><th>Debit (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td>{{ e.description }}</td>
+          <td>{{ e.building.name|default:"—" }}</td>
+          <td><span class="badge {% if e.source_type == 'receipt' %}badge-success{% else %}badge-warning{% endif %}">{{ e.get_source_type_display }}</span></td>
+          <td class="money text-debit">{% if e.debit %}{{ e.debit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money text-credit">{% if e.credit %}{{ e.credit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money">{{ e.balance|floatformat:0|intcomma }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No entries found.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="4" style="font-weight:700;padding:11px 16px;background:var(--navy);color:#fff;">TOTALS</td>
+        <td class="money text-debit" style="padding:11px 16px;background:var(--navy);color:#fff;font-weight:700;">{{ total_debit|floatformat:0|intcomma }}</td>
+        <td class="money text-credit" style="padding:11px 16px;background:var(--navy);color:#fff;font-weight:700;">{{ total_credit|floatformat:0|intcomma }}</td>
+        <td class="money" style="padding:11px 16px;background:var(--navy);color:#C9A84C;font-weight:700;">{{ net|floatformat:0|intcomma }}</td>
+      </tr></tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

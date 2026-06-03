@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}RCP-{{ receipt.receipt_number }}{% endblock %}
+{% block page_title %}Receipt Detail{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>
+<a href="{% url 'receipts:pdf' receipt.pk %}" class="btn btn-gold btn-sm no-print"><i class="fas fa-file-pdf"></i>&nbsp; Download PDF</a>
+<a href="{% url 'receipts:list' %}" class="btn btn-outline btn-sm no-print">Back</a>
+{% endblock %}
+{% block content %}
+<div class="receipt-card">
+  <div class="receipt-header">
+    <div style="font-size:12px;opacity:.6;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase;">Official Receipt</div>
+    <h2>{{ receipt.building.organisation.name }}</h2>
+    <div style="font-size:13px;opacity:.7;margin-top:4px;">{{ receipt.building.name }}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;margin-top:12px;color:#C9A84C;">RCP-{{ receipt.receipt_number }}</div>
+  </div>
+  <div class="receipt-body">
+    <div class="receipt-row"><label>Date</label><strong>{{ receipt.receipt_date|date:"d F Y" }}</strong></div>
+    <div class="receipt-row"><label>Tenant</label><strong>{{ receipt.tenant.full_name }}</strong></div>
+    <div class="receipt-row"><label>Room</label><strong>{{ receipt.tenant.room_number }} — {{ receipt.building.name }}</strong></div>
+    <div class="receipt-row"><label>Period</label><strong>{{ receipt.period_month }}/{{ receipt.period_year }}</strong></div>
+    <div class="receipt-row"><label>Payment Method</label><strong>{{ receipt.get_payment_method_display }}</strong></div>
+    {% if receipt.reference_no %}<div class="receipt-row"><label>Reference</label><strong>{{ receipt.reference_no }}</strong></div>{% endif %}
+    <div style="height:12px;"></div>
+    <div class="receipt-row"><label>Gross Amount</label><strong class="money">UGX {{ receipt.gross_amount|floatformat:0|intcomma }}</strong></div>
+    {% for tax_name, amount in receipt.tax_breakdown.items %}
+    <div class="receipt-row"><label>{{ tax_name }}</label><span class="money text-credit">- UGX {{ amount|floatformat:0|intcomma }}</span></div>
+    {% endfor %}
+    <div class="receipt-total">
+      <span>NET AMOUNT RECEIVED</span>
+      <span class="money" style="font-size:18px;">UGX {{ receipt.net_amount|floatformat:0|intcomma }}</span>
+    </div>
+    <div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);">
+      Issued by {{ receipt.cashier.get_full_name|default:receipt.cashier.username }} &nbsp;·&nbsp; {{ receipt.created_at|date:"d M Y H:i" }}
+    </div>
+  </div>
+</div>
+{% endblock %}

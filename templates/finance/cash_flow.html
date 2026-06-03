@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Cash Flow Statement{% endblock %}
+{% block page_title %}Cash Flow Statement{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>
+{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div class="filter-bar no-print" style="margin-bottom:16px;border-radius:8px;">
+  <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">From:</label>
+    <input type="date" name="date_from" value="{{ date_from }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">To:</label>
+    <input type="date" name="date_to" value="{{ date_to }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">Building:</label>
+    <select name="building" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;">
+      <option value="">All Buildings</option>
+      {% for b in buildings %}
+      <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+  </form>
+</div>
+
+<!-- Summary cards -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+  <div class="kpi-card green" style="padding:18px;">
+    <div class="kpi-label">Total Cash Inflows</div>
+    <div class="kpi-value money-lg">{{ total_receipts|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — rent received</div>
+  </div>
+  <div class="kpi-card red" style="padding:18px;">
+    <div class="kpi-label">Total Cash Outflows</div>
+    <div class="kpi-value money-lg">{{ total_expenses|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — expenses paid</div>
+  </div>
+  <div class="kpi-card {% if net_cash_flow >= 0 %}gold{% else %}red{% endif %}" style="padding:18px;">
+    <div class="kpi-label">Net Cash Flow</div>
+    <div class="kpi-value money-lg">{{ net_cash_flow|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — {{ date_from }} to {{ date_to }}</div>
+  </div>
+</div>
+
+<!-- Monthly breakdown -->
+{% if monthly %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Monthly Cash Flow Breakdown</span>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr>
+        <th>Period</th>
+        <th style="text-align:right;">Cash In (UGX)</th>
+        <th style="text-align:right;">Cash Out (UGX)</th>
+        <th style="text-align:right;">Net (UGX)</th>
+      </tr></thead>
+      <tbody>
+        {% for m in monthly %}
+        <tr>
+          <td style="font-weight:500;">{{ m.label }}</td>
+          <td class="money text-debit" style="text-align:right;">{{ m.inflow|floatformat:0|intcomma }}</td>
+          <td class="money text-credit" style="text-align:right;">{{ m.outflow|floatformat:0|intcomma }}</td>
+          <td class="money {% if m.net >= 0 %}text-debit{% else %}text-credit{% endif %}" style="text-align:right;font-weight:600;">
+            {% if m.net >= 0 %}+{% endif %}{{ m.net|floatformat:0|intcomma }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="tb-total">
+          <td style="padding:12px 16px;font-weight:700;color:#fff;">TOTAL</td>
+          <td class="money" style="text-align:right;padding:12px 16px;color:#C9A84C;font-weight:700;">{{ total_receipts|floatformat:0|intcomma }}</td>
+          <td class="money" style="text-align:right;padding:12px 16px;color:#C9A84C;font-weight:700;">{{ total_expenses|floatformat:0|intcomma }}</td>
+          <td class="money" style="text-align:right;padding:12px 16px;color:#C9A84C;font-weight:700;">{{ net_cash_flow|floatformat:0|intcomma }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card"><div class="card-body" style="text-align:center;padding:32px;color:var(--text-muted);">
+  No cash flow data for the selected period.
+</div></div>
+{% endif %}
+
+{% endblock %}

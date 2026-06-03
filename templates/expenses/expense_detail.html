@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}PV-{{ expense.voucher_number }}{% endblock %}
+{% block page_title %}Payment Voucher{% endblock %}
+{% block topbar_actions %}<button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>{% endblock %}
+{% block content %}
+<div style="max-width:480px;">
+  <div class="receipt-card">
+    <div class="receipt-header">
+      <div style="font-size:12px;opacity:.6;letter-spacing:1px;text-transform:uppercase;">Payment Voucher</div>
+      <h2>{{ expense.building.organisation.name }}</h2>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;margin-top:12px;color:#C9A84C;">PV-{{ expense.voucher_number }}</div>
+    </div>
+    <div class="receipt-body">
+      <div class="receipt-row"><label>Date</label><strong>{{ expense.expense_date|date:"d F Y" }}</strong></div>
+      <div class="receipt-row"><label>Building</label><strong>{{ expense.building.name }}</strong></div>
+      <div class="receipt-row"><label>Category</label><strong>{{ expense.category.name|default:"—" }}</strong></div>
+      <div class="receipt-row"><label>Description</label><strong>{{ expense.description }}</strong></div>
+      {% if expense.payee %}<div class="receipt-row"><label>Payee</label><strong>{{ expense.payee }}</strong></div>{% endif %}
+      {% if expense.reference_no %}<div class="receipt-row"><label>Reference</label><strong>{{ expense.reference_no }}</strong></div>{% endif %}
+      <div class="receipt-total"><span>AMOUNT PAID</span><span class="money" style="font-size:18px;">UGX {{ expense.amount|floatformat:0|intcomma }}</span></div>
+      <div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);">Recorded by {{ expense.recorded_by.get_full_name|default:"—" }} &nbsp;·&nbsp; {{ expense.created_at|date:"d M Y H:i" }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

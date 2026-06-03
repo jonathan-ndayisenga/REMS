@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Buildings{% endblock %}
+{% block page_title %}Buildings{% endblock %}
+{% block topbar_actions %}
+{% if user.is_op_manager or user.is_super_admin %}<a href="{% url 'buildings:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Add Building</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+  {% for b in buildings %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">{{ b.name }}</span>
+      <span class="badge badge-gold">{{ b.occupancy_rate }}% occupied</span>
+    </div>
+    <div class="card-body">
+      <div class="occ-bar-wrap" style="margin-bottom:12px;"><div class="occ-bar-fill" style="width:{{ b.occupancy_rate }}%;"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+        <div><div class="kpi-label">Total Rooms</div><div style="font-weight:600;font-family:'DM Mono',monospace;">{{ b.total_rooms }}</div></div>
+        <div><div class="kpi-label">Occupied</div><div style="font-weight:600;font-family:'DM Mono',monospace;">{{ b.occupied_rooms }}</div></div>
+        <div><div class="kpi-label">Vacant</div><div style="font-weight:600;font-family:'DM Mono',monospace;color:var(--warning);">{{ b.vacant_rooms }}</div></div>
+      </div>
+      {% if b.address %}<div style="font-size:12px;color:var(--text-muted);margin-top:10px;"><i class="fas fa-map-marker-alt"></i> {{ b.address }}</div>{% endif %}
+      <div class="divider"></div>
+      <div style="display:flex;gap:8px;">
+        <a href="{% url 'tenants:list' %}?building={{ b.pk }}" class="btn btn-outline btn-sm"><i class="fas fa-users"></i>&nbsp; Tenants</a>
+        {% if user.is_op_manager %}<a href="{% url 'buildings:edit' b.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card"><div class="card-body" style="text-align:center;padding:32px;color:var(--text-muted);">No buildings yet.</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

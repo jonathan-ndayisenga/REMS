@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Trial Balance{% endblock %}
+{% block page_title %}Trial Balance{% endblock %}
+{% block content %}
+<div style="max-width:680px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Trial Balance — As at {{ as_of }}</span>
+      <form method="get" style="display:flex;gap:8px;align-items:center;">
+        <input type="date" name="as_of" value="{{ as_of }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;">
+        <button type="submit" class="btn btn-primary btn-sm">Refresh</button>
+      </form>
+    </div>
+    <div class="table-container">
+      <table class="rems-table">
+        <thead><tr><th>Account</th><th>Type</th><th style="text-align:right;">Debit (UGX)</th><th style="text-align:right;">Credit (UGX)</th></tr></thead>
+        <tbody>
+          {% for a in accounts %}
+          <tr class="{% if a.debit %}tb-row-dr{% elif a.credit %}tb-row-cr{% endif %}">
+            <td style="font-weight:500;">{{ a.name }}</td>
+            <td><span class="badge badge-navy">{{ a.type|capfirst }}</span></td>
+            <td class="money" style="text-align:right;">{% if a.debit %}{{ a.debit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+            <td class="money" style="text-align:right;">{% if a.credit %}{{ a.credit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="tb-total">
+            <td colspan="2" style="padding:12px 16px;font-weight:700;color:#fff;">TOTALS</td>
+            <td class="money" style="text-align:right;padding:12px 16px;color:#C9A84C;font-weight:700;">{{ total_dr|floatformat:0|intcomma }}</td>
+            <td class="money" style="text-align:right;padding:12px 16px;color:#C9A84C;font-weight:700;">{{ total_cr|floatformat:0|intcomma }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="card-body">
+      {% if balanced %}
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> Trial balance is <strong>balanced</strong>. Total debits equal total credits.</div>
+      {% else %}
+      <div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> Trial balance is <strong>out of balance</strong>. Please review your entries.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

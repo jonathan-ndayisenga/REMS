@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Vacancy & Occupancy Report{% endblock %}
+{% block page_title %}Vacancy & Occupancy Report{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="filter-bar no-print" style="margin-bottom:16px;border-radius:8px;">
+  <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">Building:</label>
+    <select name="building" onchange="this.form.submit()">
+      <option value="">All Buildings</option>
+      {% for b in buildings %}
+      <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+      {% endfor %}
+    </select>
+    {% if building_filter %}<a href="?" class="btn btn-outline btn-sm">Clear</a>{% endif %}
+  </form>
+</div>
+
+{% for row in rows %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="card-title"><i class="fas fa-building"></i>&nbsp; {{ row.building.name }}</span>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="badge badge-gold">{{ row.occupancy_rate }}% Occupied</span>
+      <span class="badge badge-success">{{ row.occupied }} Occupied</span>
+      <span class="badge badge-danger">{{ row.vacant }} Vacant</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Occupancy bar -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span>Occupancy Rate</span>
+        <strong>{{ row.occupied }} / {{ row.total_rooms }} rooms</strong>
+      </div>
+      <div class="occ-bar-wrap" style="height:12px;">
+        <div class="occ-bar-fill" style="width:{{ row.occupancy_rate }}%;height:12px;"></div>
+      </div>
+    </div>
+
+    {% if row.occupied_rooms %}
+    <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">
+      Occupied Rooms
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      {% for room in row.occupied_rooms %}
+      <span class="badge badge-navy" style="font-family:'DM Mono',monospace;">{{ room }}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);font-size:13px;">No occupied rooms in this building.</p>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body"><p style="color:var(--text-muted);">No buildings found.</p></div></div>
+{% endfor %}
+
+{% endblock %}

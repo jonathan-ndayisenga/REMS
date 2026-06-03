@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Tenants{% endblock %}
+{% block page_title %}Tenants{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'tenants:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Register Tenant</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <select name="building" onchange="this.form.submit()">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All Status</option>
+        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+      </select>
+    </form>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-muted);">{{ tenants|length }} tenant{{ tenants|length|pluralize }}</span>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr>
+        <th>Tenant</th><th>Building</th><th>Room</th><th>Monthly Rate (UGX)</th><th>Balance (UGX)</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for t in tenants %}
+        {% with balance=t.get_balance %}
+        <tr>
+          <td><a href="{% url 'tenants:detail' t.pk %}" style="font-weight:500;color:var(--navy);">{{ t.full_name }}</a><br><span style="font-size:11px;color:var(--text-muted);">{{ t.email }}</span></td>
+          <td>{{ t.building.name }}</td>
+          <td><span class="badge badge-navy">{{ t.room_number }}</span></td>
+          <td class="money">{{ t.monthly_rate|floatformat:0|intcomma }}</td>
+          <td class="money {% if balance > 0 %}text-credit{% else %}text-debit{% endif %}">
+            {% if balance > 0 %}▲{% else %}✓{% endif %} {{ balance|floatformat:0|intcomma }}
+          </td>
+          <td><span class="badge {% if t.status == 'active' %}badge-success{% else %}badge-muted{% endif %}">{{ t.get_status_display }}</span></td>
+          <td>
+            <a href="{% url 'tenants:detail' t.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'tenants:edit' t.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No tenants found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

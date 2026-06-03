@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Expenses{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+{% block topbar_actions %}<a href="{% url 'expenses:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Record Expense</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;">
+      <select name="building" onchange="this.form.submit()">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr><th>Voucher #</th><th>Description</th><th>Category</th><th>Building</th><th>Date</th><th>Amount (UGX)</th><th>Recorded By</th></tr></thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td><a href="{% url 'expenses:detail' e.pk %}" style="font-family:'DM Mono',monospace;color:var(--navy-light);font-size:12px;">PV-{{ e.voucher_number }}</a></td>
+          <td>{{ e.description }}</td>
+          <td><span class="badge badge-muted">{{ e.category.name|default:"—" }}</span></td>
+          <td>{{ e.building.name }}</td>
+          <td>{{ e.expense_date|date:"d M Y" }}</td>
+          <td class="money text-credit">{{ e.amount|floatformat:0|intcomma }}</td>
+          <td style="font-size:12px;color:var(--text-muted);">{{ e.recorded_by.get_full_name|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No expenses found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

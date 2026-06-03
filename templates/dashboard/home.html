@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<form method="get" style="display:flex;gap:8px;align-items:center;">
+  <select name="building" onchange="this.form.submit()" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:#fff;">
+    <option value="">All Buildings</option>
+    {% for b in all_buildings %}
+    <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="period" onchange="this.form.submit()" style="padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:#fff;">
+    <option value="3"  {% if period == "3"  %}selected{% endif %}>Last 3 months</option>
+    <option value="6"  {% if period == "6"  %}selected{% endif %}>Last 6 months</option>
+    <option value="12" {% if period == "12" %}selected{% endif %}>Last 12 months</option>
+  </select>
+  {% if building_filter %}<a href="?" class="btn btn-outline btn-sm">Clear Filter</a>{% endif %}
+</form>
+<span style="font-size:12px;color:var(--text-muted);"><i class="fas fa-calendar-alt"></i> {{ today|date:"l, d F Y" }}</span>
+{% endblock %}
+
+{% block content %}
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card gold">
+    <div class="kpi-label">Monthly Income</div>
+    <div class="kpi-value money-lg">{{ this_month_income|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — this month</div>
+    <div class="kpi-icon"><i class="fas fa-arrow-trend-up"></i></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Monthly Expenses</div>
+    <div class="kpi-value money-lg">{{ this_month_expenses|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — this month</div>
+    <div class="kpi-icon"><i class="fas fa-arrow-trend-down"></i></div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Net Income</div>
+    <div class="kpi-value money-lg">{{ net_income|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — this month</div>
+    <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Outstanding</div>
+    <div class="kpi-value money-lg">{{ outstanding|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX — rent receivable</div>
+    <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Active Tenants</div>
+    <div class="kpi-value">{{ total_tenants }}</div>
+    <div class="kpi-sub">across all buildings</div>
+    <div class="kpi-icon"><i class="fas fa-users"></i></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Buildings</div>
+    <div class="kpi-value">{{ total_buildings }}</div>
+    <div class="kpi-sub">managed properties</div>
+    <div class="kpi-icon"><i class="fas fa-building"></i></div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;">
+  <!-- Revenue Chart -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Revenue vs Expenses — Last {{ period }} Months{% if selected_building_name %}: {{ selected_building_name }}{% endif %}</span>
+    </div>
+    <div class="card-body" style="padding:20px;">
+      <canvas id="revenueChart" height="90"></canvas>
+    </div>
+  </div>
+
+  <!-- Occupancy -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Building Occupancy</span>
+    </div>
+    <div class="card-body">
+      {% for b in building_occupancy %}
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:13px;font-weight:500;">{{ b.name }}</span>
+          <span class="badge badge-gold">{{ b.rate }}%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="occ-bar-wrap">
+            <div class="occ-bar-fill" style="width:{{ b.rate }}%;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">{{ b.occupied }}/{{ b.total }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <p style="color:var(--text-muted);font-size:13px;">No buildings configured.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;">
+  <!-- Recent Receipts -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Recent Receipts</span>
+      <a href="{% url 'receipts:list' %}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    <div class="table-container">
+      <table class="rems-table">
+        <thead><tr>
+          <th>Receipt #</th><th>Tenant</th><th>Building</th><th>Date</th><th>Amount (UGX)</th>
+        </tr></thead>
+        <tbody>
+          {% for r in recent_receipts %}
+          <tr>
+            <td><a href="{% url 'receipts:detail' r.pk %}" style="color:var(--navy-light);font-family:'DM Mono',monospace;font-size:12px;">RCP-{{ r.receipt_number }}</a></td>
+            <td>{{ r.tenant.full_name }}</td>
+            <td>{{ r.building.name }}</td>
+            <td>{{ r.receipt_date|date:"d M Y" }}</td>
+            <td class="money text-debit">{{ r.net_amount|floatformat:0|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">No receipts yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Aged Receivables snapshot -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Aged Receivables</span>
+    </div>
+    <div class="card-body">
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);">
+            <th style="padding:6px 0;color:var(--text-muted);font-weight:600;text-align:left;">Period</th>
+            <th style="padding:6px 0;color:var(--text-muted);font-weight:600;text-align:right;">Tenants</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:9px 0;"><span class="badge badge-success">0–30 days</span></td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;">{{ aged_30 }}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:9px 0;"><span class="badge badge-warning">31–60 days</span></td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;">{{ aged_60 }}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:9px 0;"><span class="badge badge-danger">61–90 days</span></td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;">{{ aged_90 }}</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 0;"><span class="badge badge-danger">90+ days</span></td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--danger);">{{ aged_90p }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="divider"></div>
+      <a href="{% url 'tenants:aged_receivables' %}" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">
+        <i class="fas fa-clock"></i>&nbsp; Full Aged Receivables Report
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Top 5 Tenants by Arrears -->
+{% if top5_arrears %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">Top 5 Tenants by Arrears</span>
+    <a href="{% url 'tenants:aged_receivables' %}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr>
+        <th>Tenant</th><th>Building</th><th>Room</th><th>Days Overdue</th><th style="text-align:right;">Balance Owed (UGX)</th>
+      </tr></thead>
+      <tbody>
+        {% for row in top5_arrears %}
+        <tr>
+          <td><a href="{% url 'tenants:detail' row.tenant.pk %}">{{ row.tenant.full_name }}</a></td>
+          <td>{{ row.tenant.building.name }}</td>
+          <td><span class="badge badge-navy">{{ row.tenant.room_number }}</span></td>
+          <td>
+            {% if row.days > 90 %}
+              <span class="badge badge-danger">{{ row.days }}d overdue</span>
+            {% elif row.days > 60 %}
+              <span class="badge badge-danger">{{ row.days }}d overdue</span>
+            {% elif row.days > 30 %}
+              <span class="badge badge-warning">{{ row.days }}d overdue</span>
+            {% else %}
+              <span class="badge badge-success">{{ row.days }}d</span>
+            {% endif %}
+          </td>
+          <td class="money text-credit" style="text-align:right;">{{ row.balance|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ctx = document.getElementById('revenueChart').getContext('2d');
+const labels  = {{ chart_labels|safe }};
+const income  = {{ chart_income|safe }};
+const expenses = {{ chart_expenses|safe }};
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Income',
+        data: income,
+        borderColor: '#C9A84C',
+        backgroundColor: 'rgba(201,168,76,.08)',
+        borderWidth: 2.5,
+        tension: .4,
+        fill: true,
+        pointBackgroundColor: '#C9A84C',
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      },
+      {
+        label: 'Expenses',
+        data: expenses,
+        borderColor: '#B91C1C',
+        backgroundColor: 'rgba(185,28,28,.05)',
+        borderWidth: 2,
+        tension: .4,
+        fill: true,
+        pointBackgroundColor: '#B91C1C',
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 12 }, padding: 16 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => 'UGX ' + ctx.parsed.y.toLocaleString()
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 } } },
+      y: {
+        grid: { color: '#F1F5F9' },
+        ticks: {
+          font: { family: 'DM Mono', size: 11 },
+          callback: v => 'UGX ' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v)
+        }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

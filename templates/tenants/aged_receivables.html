@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Aged Receivables{% endblock %}
+{% block page_title %}Aged Receivables Report{% endblock %}
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>
+{% endblock %}
+{% block content %}
+
+<div class="filter-bar no-print" style="margin-bottom:16px;border-radius:8px;">
+  <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">Building:</label>
+    <select name="building" onchange="this.form.submit()">
+      <option value="">All Buildings</option>
+      {% for b in buildings %}
+      <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+      {% endfor %}
+    </select>
+    {% if building_filter %}<a href="?" class="btn btn-outline btn-sm">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Summary cards -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+  <div class="kpi-card green" style="padding:16px;">
+    <div class="kpi-label">0–30 Days</div>
+    <div class="kpi-value" style="font-size:28px;">{{ buckets.0_30|length }}</div>
+    <div class="kpi-sub">tenants</div>
+  </div>
+  <div class="kpi-card" style="padding:16px;border-top:3px solid var(--warning);">
+    <div class="kpi-label">31–60 Days</div>
+    <div class="kpi-value" style="font-size:28px;">{{ buckets.31_60|length }}</div>
+    <div class="kpi-sub">tenants</div>
+  </div>
+  <div class="kpi-card red" style="padding:16px;">
+    <div class="kpi-label">61–90 Days</div>
+    <div class="kpi-value" style="font-size:28px;">{{ buckets.61_90|length }}</div>
+    <div class="kpi-sub">tenants</div>
+  </div>
+  <div class="kpi-card red" style="padding:16px;">
+    <div class="kpi-label">90+ Days</div>
+    <div class="kpi-value" style="font-size:28px;color:var(--danger);">{{ buckets.90_plus|length }}</div>
+    <div class="kpi-sub">tenants — critical</div>
+  </div>
+</div>
+
+{% for label, badge, rows in buckets.items|dictsort:"0" %}
+{% with bucket_rows=rows %}
+{% if bucket_rows %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="card-title">
+      {% if label == '0_30' %}<span class="badge badge-success">0–30 Days Overdue</span>
+      {% elif label == '31_60' %}<span class="badge badge-warning">31–60 Days Overdue</span>
+      {% elif label == '61_90' %}<span class="badge badge-danger">61–90 Days Overdue</span>
+      {% else %}<span class="badge badge-danger">90+ Days Overdue — Critical</span>{% endif %}
+    </span>
+    <span class="money" style="font-size:13px;color:var(--danger);">
+      UGX {{ bucket_rows|length }} tenant{{ bucket_rows|length|pluralize }}
+    </span>
+  </div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead><tr>
+        <th>Tenant</th><th>Building</th><th>Room</th><th>Monthly Rate (UGX)</th><th>Days Overdue</th><th style="text-align:right;">Balance Owed (UGX)</th>
+      </tr></thead>
+      <tbody>
+        {% for row in bucket_rows %}
+        <tr>
+          <td><a href="{% url 'tenants:detail' row.tenant.pk %}">{{ row.tenant.full_name }}</a></td>
+          <td>{{ row.tenant.building.name }}</td>
+          <td><span class="badge badge-navy">{{ row.tenant.room_number }}</span></td>
+          <td class="money">{{ row.tenant.monthly_rate|floatformat:0|intcomma }}</td>
+          <td>
+            {% if row.days > 90 %}<span class="badge badge-danger">{{ row.days }}d</span>
+            {% elif row.days > 60 %}<span class="badge badge-danger">{{ row.days }}d</span>
+            {% elif row.days > 30 %}<span class="badge badge-warning">{{ row.days }}d</span>
+            {% else %}<span class="badge badge-success">{{ row.days }}d</span>{% endif %}
+          </td>
+          <td class="money text-credit" style="text-align:right;font-weight:600;">{{ row.balance|floatformat:0|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endfor %}
+
+{% if not buckets.0_30 and not buckets.31_60 and not buckets.61_90 and not buckets.90_plus %}
+<div class="card"><div class="card-body" style="text-align:center;padding:40px;">
+  <i class="fas fa-check-circle" style="font-size:32px;color:var(--success);margin-bottom:12px;display:block;"></i>
+  <strong>All clear!</strong> No tenants are currently in arrears.
+</div></div>
+{% endif %}
+
+<!-- Total -->
+{% if total_outstanding %}
+<div class="card" style="margin-top:8px;">
+  <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-weight:700;font-size:15px;">Total Outstanding Receivables</span>
+    <span class="money text-credit" style="font-size:20px;font-weight:700;">UGX {{ total_outstanding|floatformat:0|intcomma }}</span>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

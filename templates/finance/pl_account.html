@@ -2,38 +2,73 @@
 {% load humanize %}
 {% block title %}P&L Account{% endblock %}
 {% block page_title %}Profit &amp; Loss Account{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-ghost btn-sm no-print"><i class="fas fa-print"></i> Print</button>
+{% endblock %}
+
 {% block content %}
 <div style="max-width:620px;">
-  <div class="card" style="margin-bottom:16px;">
+  <div class="card" style="margin-bottom:var(--sp-4);">
     <div class="filter-bar">
-      <form method="get" style="display:flex;gap:10px;align-items:center;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);">From</label>
+      <span class="filter-label">From</span>
+      <form method="get" style="display:contents;">
         <input type="date" name="date_from" value="{{ date_from }}">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);">To</label>
+        <span class="filter-label">To</span>
         <input type="date" name="date_to" value="{{ date_to }}">
-        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; Apply</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
       </form>
     </div>
   </div>
+
   <div class="card">
-    <div class="card-header"><span class="card-title">Statement of Profit &amp; Loss &nbsp;·&nbsp; {{ date_from }} to {{ date_to }}</span></div>
-    <div class="card-body" style="padding:0;">
-      <div class="pl-section">
-        <div class="pl-section-title">Trading Account</div>
-        <div class="pl-row"><span>Gross Rental Income</span><span class="money text-debit">{{ income|floatformat:0|intcomma }}</span></div>
-        <div class="pl-total"><span>GROSS PROFIT</span><span class="money">UGX {{ gross_profit|floatformat:0|intcomma }}</span></div>
+    <div class="card-header">
+      <div class="card-title">Statement of Profit &amp; Loss</div>
+      <span class="badge badge-slate">{{ date_from }} &rarr; {{ date_to }}</span>
+    </div>
+    <div style="padding:0;">
+
+      <div class="report-section-head">Trading Account</div>
+      <div class="report-row">
+        <span class="report-row-label">Gross Rental Income</span>
+        <span class="money text-debit">{{ income|floatformat:0|intcomma }}</span>
       </div>
-      <div class="pl-section">
-        <div class="pl-section-title">Profit &amp; Loss Account</div>
-        <div class="pl-row"><span>Operating Expenses</span><span class="money text-credit">( {{ expenses|floatformat:0|intcomma }} )</span></div>
-        <div class="pl-total"><span>NET PROFIT BEFORE TAX</span><span class="money">UGX {{ net_profit_before_tax|floatformat:0|intcomma }}</span></div>
+      <div class="report-total">
+        <span>Gross Profit</span>
+        <span class="money">UGX {{ gross_profit|floatformat:0|intcomma }}</span>
       </div>
-      <div class="pl-section">
-        <div class="pl-section-title">Income Tax</div>
-        <div class="pl-row"><span>Tax Rate (from settings)</span><span>{{ income_tax_rate }}%</span></div>
-        <div class="pl-row"><span>Income Tax Expense</span><span class="money text-credit">( {{ tax_expense|floatformat:0|intcomma }} )</span></div>
-        <div class="pl-total" style="background:var(--gold);color:var(--navy);"><span>NET PROFIT AFTER TAX</span><span class="money-lg">UGX {{ net_profit_after_tax|floatformat:0|intcomma }}</span></div>
+
+      <div class="report-section-head">Profit &amp; Loss Account</div>
+      <div class="report-row">
+        <span class="report-row-label">Operating Expenses</span>
+        <span class="money text-credit">( {{ expenses|floatformat:0|intcomma }} )</span>
       </div>
+      <div class="report-total">
+        <span>Net Profit Before Tax</span>
+        <span class="money">UGX {{ net_profit_before_tax|floatformat:0|intcomma }}</span>
+      </div>
+
+      <div class="report-section-head">Income Tax</div>
+      {% for t in income_taxes %}
+      <div class="report-row">
+        <span class="report-row-label">{{ t.name }}</span>
+        <span class="badge badge-slate">{{ t.percentage }}%</span>
+      </div>
+      {% empty %}
+      <div class="report-row">
+        <span class="report-row-label">No income tax configured</span>
+        <span class="text-muted">0%</span>
+      </div>
+      {% endfor %}
+      <div class="report-row">
+        <span class="report-row-label">Income Tax Expense</span>
+        <span class="money text-credit">( {{ tax_expense|floatformat:0|intcomma }} )</span>
+      </div>
+      <div class="report-total-accent">
+        <span>Net Profit After Tax</span>
+        <span class="money-lg">UGX {{ net_profit_after_tax|floatformat:0|intcomma }}</span>
+      </div>
+
     </div>
   </div>
 </div>

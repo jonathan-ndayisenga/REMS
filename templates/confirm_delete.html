@@ -2,21 +2,24 @@
 {% block title %}Confirm Delete{% endblock %}
 {% block page_title %}Confirm Deletion{% endblock %}
 {% block content %}
-<div style="max-width:480px;">
+<div style="max-width:460px;">
   <div class="card">
-    <div class="card-header" style="background:#FFF1F2;">
-      <span class="card-title" style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Delete Confirmation</span>
-    </div>
-    <div class="card-body">
-      <p style="margin-bottom:20px;font-size:14px;">
-        Are you sure you want to permanently delete <strong>{{ obj }}</strong>?
+    <div class="card-body" style="padding:var(--sp-8);">
+      <div class="modal-icon modal-icon-danger" style="margin-bottom:var(--sp-4);">
+        <i class="fas fa-trash-alt"></i>
+      </div>
+      <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:var(--sp-3);">
+        Delete Confirmation
+      </div>
+      <p style="font-size:13.5px;color:var(--text-muted);line-height:1.6;margin-bottom:var(--sp-6);">
+        Are you sure you want to permanently delete <strong style="color:var(--text);">{{ obj }}</strong>?
         This action cannot be undone.
       </p>
       <form method="post">
         {% csrf_token %}
-        <div style="display:flex;gap:10px;">
-          <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i>&nbsp; Yes, Delete</button>
-          <a href="javascript:history.back()" class="btn btn-outline">Cancel</a>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Delete</button>
+          <a href="javascript:history.back()" class="btn btn-ghost">Cancel</a>
         </div>
       </form>
     </div>

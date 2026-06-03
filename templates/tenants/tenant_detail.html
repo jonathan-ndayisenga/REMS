@@ -2,59 +2,127 @@
 {% load humanize %}
 {% block title %}{{ tenant.full_name }}{% endblock %}
 {% block page_title %}{{ tenant.full_name }}{% endblock %}
+
 {% block topbar_actions %}
-<a href="{% url 'receipts:create' %}" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i>&nbsp; Issue Receipt</a>
-<a href="{% url 'tenants:edit' tenant.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i>&nbsp; Edit</a>
+<a href="{% url 'receipts:create' %}" class="btn btn-accent btn-sm">
+  <i class="fas fa-plus"></i> Issue Receipt
+</a>
+<a href="{% url 'tenants:edit' tenant.pk %}" class="btn btn-ghost btn-sm">
+  <i class="fas fa-pencil"></i> Edit
+</a>
 {% endblock %}
+
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;">
-  <!-- Info -->
-  <div style="display:flex;flex-direction:column;gap:16px;">
+<div class="grid-2" style="align-items:start;">
+
+  <!-- Left column: info + balance -->
+  <div class="stack-sm">
     <div class="card">
-      <div class="card-header"><span class="card-title">Tenant Details</span></div>
+      <div class="card-header">
+        <div class="card-title">Tenant Details</div>
+        <span class="badge {% if tenant.status == 'active' %}badge-green{% else %}badge-slate{% endif %}">
+          <span class="status-dot {% if tenant.status == 'active' %}dot-green{% else %}dot-slate{% endif %}"></span>
+          {{ tenant.get_status_display }}
+        </span>
+      </div>
       <div class="card-body">
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;">
-          <div><span style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Room</span><br><strong>{{ tenant.room_number }}</strong> — {{ tenant.building.name }}</div>
-          <div><span style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Monthly Rate</span><br><strong class="money">UGX {{ tenant.monthly_rate|floatformat:0|intcomma }}</strong></div>
-          <div><span style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Lease Start</span><br>{{ tenant.lease_start|date:"d M Y" }}</div>
-          {% if tenant.email %}<div><span style="color:var(--text-muted);font-size:11px;">Email</span><br>{{ tenant.email }}</div>{% endif %}
-          {% if tenant.phone %}<div><span style="color:var(--text-muted);font-size:11px;">Phone</span><br>{{ tenant.phone }}</div>{% endif %}
+        <div class="stack-sm">
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Room</div>
+            <div class="fw-600">{{ tenant.room_number }} &mdash; {{ tenant.building.name }}</div>
+          </div>
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Monthly Rate</div>
+            <div class="money fw-600">UGX {{ tenant.monthly_rate|floatformat:0|intcomma }}</div>
+          </div>
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Lease Start</div>
+            <div>{{ tenant.lease_start|date:"d M Y" }}</div>
+          </div>
+          {% if tenant.lease_end %}
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Lease End</div>
+            <div>{{ tenant.lease_end|date:"d M Y" }}</div>
+          </div>
+          {% endif %}
+          {% if tenant.email %}
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Email</div>
+            <div>{{ tenant.email }}</div>
+          </div>
+          {% endif %}
+          {% if tenant.phone %}
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Phone</div>
+            <div>{{ tenant.phone }}</div>
+          </div>
+          {% endif %}
+          {% if tenant.security_deposit %}
+          <div>
+            <div class="kpi-label" style="font-size:10px;">Security Deposit</div>
+            <div class="money">UGX {{ tenant.security_deposit|floatformat:0|intcomma }}</div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
+
     <div class="card">
-      <div class="card-header"><span class="card-title">Balance</span></div>
-      <div class="card-body" style="text-align:center;">
-        <div class="money-lg {% if balance > 0 %}text-credit{% else %}text-debit{% endif %}" style="font-size:28px;">
+      <div class="card-header"><div class="card-title">Account Balance</div></div>
+      <div class="card-body" style="text-align:center;padding:var(--sp-8);">
+        <div class="money-xl {% if balance > 0 %}text-credit{% else %}text-debit{% endif %}">
           UGX {{ balance|floatformat:0|intcomma }}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-          {% if balance > 0 %}Amount owed{% elif balance < 0 %}Credit balance{% else %}Settled{% endif %}
+        <div class="text-muted" style="font-size:13px;margin-top:var(--sp-2);">
+          {% if balance > 0 %}Outstanding — payment required
+          {% elif balance < 0 %}Credit balance
+          {% else %}Account settled
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
-  <!-- Ledger -->
+
+  <!-- Right column: ledger -->
   <div class="card">
-    <div class="card-header"><span class="card-title">Ledger History</span></div>
+    <div class="card-header">
+      <div class="card-title">Ledger History</div>
+      <span class="filter-summary">{{ ledger|length }} entr{{ ledger|length|pluralize:"y,ies" }}</span>
+    </div>
     <div class="table-container">
       <table class="rems-table">
-        <thead><tr><th>Date</th><th>Description</th><th>Debit (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th style="text-align:right;">Debit (UGX)</th>
+            <th style="text-align:right;">Credit (UGX)</th>
+            <th style="text-align:right;">Balance (UGX)</th>
+          </tr>
+        </thead>
         <tbody>
           {% for e in ledger %}
           <tr>
-            <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+            <td class="nowrap text-sub">{{ e.entry_date|date:"d M Y" }}</td>
             <td>{{ e.description }}</td>
-            <td class="money text-credit">{% if e.debit_amount %}{{ e.debit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
-            <td class="money text-debit">{% if e.credit_amount %}{{ e.credit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
-            <td class="money">{{ e.running_balance|floatformat:0|intcomma }}</td>
+            <td class="money text-credit text-right">{% if e.debit_amount %}{{ e.debit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+            <td class="money text-debit text-right">{% if e.credit_amount %}{{ e.credit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+            <td class="money text-right fw-600">{{ e.running_balance|floatformat:0|intcomma }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">No ledger entries.</td></tr>
+          <tr class="empty-row">
+            <td colspan="5">
+              <div class="empty-state" style="padding:var(--sp-6);">
+                <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+                <div class="empty-title">No ledger entries</div>
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 {% endblock %}

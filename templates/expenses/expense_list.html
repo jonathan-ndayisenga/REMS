@@ -2,33 +2,67 @@
 {% load humanize %}
 {% block title %}Expenses{% endblock %}
 {% block page_title %}Expenses{% endblock %}
-{% block topbar_actions %}<a href="{% url 'expenses:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Record Expense</a>{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'expenses:create' %}" class="btn btn-accent">
+  <i class="fas fa-plus"></i> Record Expense
+</a>
+{% endblock %}
+
 {% block content %}
 <div class="card">
   <div class="filter-bar">
-    <form method="get" style="display:flex;gap:10px;align-items:center;">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" placeholder="Search expenses..."
+           data-search-table="expense-table"
+           style="padding-left:30px;width:220px;">
+    <form method="get" style="display:contents;">
       <select name="building" onchange="this.form.submit()">
         <option value="">All Buildings</option>
         {% for b in buildings %}<option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
       </select>
     </form>
+    <span class="filter-spacer"></span>
+    <span class="filter-summary" data-search-counter="expense-table">{{ expenses|length }} expense{{ expenses|length|pluralize }}</span>
   </div>
+
   <div class="table-container">
-    <table class="rems-table">
-      <thead><tr><th>Voucher #</th><th>Description</th><th>Category</th><th>Building</th><th>Date</th><th>Amount (UGX)</th><th>Recorded By</th></tr></thead>
+    <table class="rems-table" id="expense-table" data-sortable>
+      <thead>
+        <tr>
+          <th>Voucher No.</th>
+          <th data-sort>Description</th>
+          <th>Category</th>
+          <th>Building</th>
+          <th data-sort>Date</th>
+          <th data-sort style="text-align:right;">Amount (UGX)</th>
+          <th>Recorded By</th>
+        </tr>
+      </thead>
       <tbody>
         {% for e in expenses %}
         <tr>
-          <td><a href="{% url 'expenses:detail' e.pk %}" style="font-family:'DM Mono',monospace;color:var(--navy-light);font-size:12px;">PV-{{ e.voucher_number }}</a></td>
-          <td>{{ e.description }}</td>
-          <td><span class="badge badge-muted">{{ e.category.name|default:"—" }}</span></td>
-          <td>{{ e.building.name }}</td>
-          <td>{{ e.expense_date|date:"d M Y" }}</td>
-          <td class="money text-credit">{{ e.amount|floatformat:0|intcomma }}</td>
-          <td style="font-size:12px;color:var(--text-muted);">{{ e.recorded_by.get_full_name|default:"—" }}</td>
+          <td>
+            <a href="{% url 'expenses:detail' e.pk %}" class="money fw-600 text-brand" style="font-size:12px;">PV-{{ e.voucher_number }}</a>
+          </td>
+          <td class="fw-500">{{ e.description }}</td>
+          <td><span class="badge badge-slate">{{ e.category.name|default:"—" }}</span></td>
+          <td class="text-muted">{{ e.building.name }}</td>
+          <td class="nowrap text-sub">{{ e.expense_date|date:"d M Y" }}</td>
+          <td class="money text-credit text-right fw-600">{{ e.amount|floatformat:0|intcomma }}</td>
+          <td class="text-muted" style="font-size:12px;">{{ e.recorded_by.get_full_name|default:"—" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No expenses found.</td></tr>
+        <tr class="empty-row">
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+              <div class="empty-title">No expenses recorded</div>
+              <div class="empty-sub">Record a payment voucher to track outgoing expenses.</div>
+              <a href="{% url 'expenses:create' %}" class="btn btn-accent">Record Expense</a>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

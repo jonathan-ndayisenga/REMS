@@ -4,10 +4,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}REMS{% endblock %} — Real Estate Management System</title>
+<title>{% block title %}REMS{% endblock %} — Real Estate Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="/static/css/rems.css">
 {% block extra_head %}{% endblock %}
@@ -16,146 +16,191 @@
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
+
   <a href="{% url 'dashboard:home' %}" class="sidebar-brand">
-    <div class="sidebar-brand-icon">🏛️</div>
+    <div class="sidebar-brand-mark">
+      <!-- Building / property icon — no emoji -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 21V9l9-6 9 6v12H3zm2-2h4v-4h6v4h4V10.1L12 5.2 5 10.1V19zm4-4h6v-2H9v2z"/>
+      </svg>
+    </div>
     <div>
-      <div class="sidebar-brand-text">REMS</div>
+      <div class="sidebar-brand-name">REMS</div>
       <div class="sidebar-brand-sub">Property System</div>
     </div>
   </a>
 
   <nav class="sidebar-nav">
-    <a href="{% url 'dashboard:home' %}" class="nav-item {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+
+    {% if user.is_op_manager or user.is_super_admin %}
+    <a href="{% url 'dashboard:home' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Dashboard
     </a>
+    {% endif %}
 
+    <!-- Properties -->
     {% if user.can_manage_tenants or user.is_op_manager %}
     <div class="nav-section">Properties</div>
     {% if user.is_op_manager or user.is_super_admin %}
-    <a href="{% url 'buildings:list' %}" class="nav-item {% if request.resolver_match.app_name == 'buildings' %}active{% endif %}">
+    <a href="{% url 'buildings:list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'buildings' %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-building"></i></span> Buildings
     </a>
     {% endif %}
-    <a href="{% url 'tenants:list' %}" class="nav-item {% if request.resolver_match.app_name == 'tenants' %}active{% endif %}">
+    <a href="{% url 'tenants:list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'tenants' and 'vacancy' not in request.path and 'aged' not in request.path and 'rent-roll' not in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-users"></i></span> Tenants
     </a>
-    <a href="{% url 'tenants:rent_roll' %}" class="nav-item {% if 'rent-roll' in request.path %}active{% endif %}">
+    <a href="{% url 'tenants:rent_roll' %}"
+       class="nav-item {% if 'rent-roll' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-scroll"></i></span> Rent Roll
     </a>
-    <a href="{% url 'tenants:vacancy' %}" class="nav-item {% if 'vacancy' in request.path %}active{% endif %}">
+    <a href="{% url 'tenants:vacancy' %}"
+       class="nav-item {% if 'vacancy' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-door-open"></i></span> Vacancy Report
     </a>
-    <a href="{% url 'tenants:aged_receivables' %}" class="nav-item {% if 'aged-receivables' in request.path %}active{% endif %}">
+    <a href="{% url 'tenants:aged_receivables' %}"
+       class="nav-item {% if 'aged-receivables' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-clock"></i></span> Aged Receivables
     </a>
     {% endif %}
 
+    <!-- Transactions -->
     {% if user.can_receipt or user.can_expense %}
     <div class="nav-section">Transactions</div>
-    {% endif %}
     {% if user.can_receipt %}
-    <a href="{% url 'receipts:list' %}" class="nav-item {% if request.resolver_match.app_name == 'receipts' %}active{% endif %}">
+    <a href="{% url 'receipts:list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'receipts' %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-receipt"></i></span> Receipts
     </a>
     {% endif %}
     {% if user.can_expense %}
-    <a href="{% url 'expenses:list' %}" class="nav-item {% if request.resolver_match.app_name == 'expenses' %}active{% endif %}">
+    <a href="{% url 'expenses:list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'expenses' %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Expenses
     </a>
     {% endif %}
+    {% endif %}
 
+    <!-- Accounting -->
     {% if user.can_access_finance or user.can_manage_tenants %}
     <div class="nav-section">Accounting</div>
     {% if user.can_manage_tenants %}
-    <a href="{% url 'finance:cash_flow' %}" class="nav-item {% if 'cash-flow' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:cash_flow' %}"
+       class="nav-item {% if 'cash-flow' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-water"></i></span> Cash Flow
     </a>
     {% endif %}
     {% if user.can_access_finance %}
-    <a href="{% url 'finance:cashbook' %}" class="nav-item {% if 'cashbook' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:cashbook' %}"
+       class="nav-item {% if 'cashbook' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-book"></i></span> Cashbook
     </a>
-    <a href="{% url 'finance:ledger' %}" class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:ledger' %}"
+       class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-book-open"></i></span> Ledger
     </a>
-    <a href="{% url 'finance:trial_balance' %}" class="nav-item {% if 'trial-balance' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:trial_balance' %}"
+       class="nav-item {% if 'trial-balance' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-balance-scale"></i></span> Trial Balance
     </a>
-    <a href="{% url 'finance:pl' %}" class="nav-item {% if '/pl/' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:pl' %}"
+       class="nav-item {% if '/pl/' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-chart-bar"></i></span> P&amp;L Account
     </a>
-    <a href="{% url 'finance:balance_sheet' %}" class="nav-item {% if 'balance-sheet' in request.path %}active{% endif %}">
+    <a href="{% url 'finance:balance_sheet' %}"
+       class="nav-item {% if 'balance-sheet' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Balance Sheet
     </a>
     {% endif %}
     {% endif %}
 
+    <!-- Settings -->
     {% if user.can_configure_taxes or user.is_op_manager %}
     <div class="nav-section">Settings</div>
-    <a href="{% url 'taxes:list' %}" class="nav-item {% if request.resolver_match.app_name == 'taxes' %}active{% endif %}">
+    <a href="{% url 'taxes:list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'taxes' %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-percent"></i></span> Tax Settings
     </a>
     {% endif %}
 
     {% if user.is_op_manager or user.is_super_admin %}
-    <a href="{% url 'accounts:user_list' %}" class="nav-item {% if request.resolver_match.app_name == 'accounts' and 'user' in request.path and 'org' not in request.path %}active{% endif %}">
+    <a href="{% url 'accounts:user_list' %}"
+       class="nav-item {% if request.resolver_match.app_name == 'accounts' and 'user' in request.path and 'org' not in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-user-cog"></i></span> Users
     </a>
     {% endif %}
 
+    <!-- Super Admin only -->
     {% if user.is_super_admin %}
     <div class="nav-section">Super Admin</div>
-    <a href="{% url 'accounts:org_list' %}" class="nav-item {% if 'organisations' in request.path %}active{% endif %}">
+    <a href="{% url 'accounts:org_list' %}"
+       class="nav-item {% if 'organisations' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-sitemap"></i></span> Client Accounts
     </a>
     {% endif %}
+
   </nav>
 
+  <!-- User chip + sign out -->
   <div class="sidebar-footer">
-    <div class="user-card">
+    <div class="user-chip">
       <div class="user-avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
-      <div>
-        <div class="user-info-name">{{ user.get_full_name|default:user.username }}</div>
-        <div class="user-info-role">
-          {{ user.get_role_display }}
-          {% for extra in user.user_roles.all %}· {{ extra.get_role_display }}{% endfor %}
+      <div style="min-width:0;">
+        <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="user-role">
+          {{ user.get_role_display }}{% for r in user.user_roles.all %} &middot; {{ r.get_role_display }}{% endfor %}
         </div>
       </div>
     </div>
-    <a href="{% url 'accounts:logout' %}" class="nav-item" style="margin-top:8px; border-radius:6px;">
-      <span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span> Sign Out
+    <a href="{% url 'accounts:logout' %}" class="sidebar-signout">
+      <i class="fas fa-sign-out-alt"></i> Sign Out
     </a>
   </div>
+
 </aside>
 
 <!-- MAIN -->
 <div class="main-wrapper">
+
   <header class="topbar">
-    <div>
-      {% if breadcrumb %}<div class="breadcrumb">{{ breadcrumb }}</div>{% endif %}
+    <div class="topbar-left">
+      {% if breadcrumb %}
+      <div class="breadcrumb">{{ breadcrumb }}</div>
+      {% endif %}
       <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
     </div>
     <div class="topbar-actions">
       {% block topbar_actions %}{% endblock %}
-      <span style="font-size:12px;color:var(--text-muted);">
-        {{ user.organisation.name|default:"REMS" }}
+      {% if user.organisation %}
+      <span class="org-label">
+        <i class="fas fa-building" style="font-size:10px;margin-right:4px;opacity:.6;"></i>
+        {{ user.organisation.name }}
       </span>
+      {% endif %}
     </div>
   </header>
 
   <main class="content">
+
+    <!-- Django messages → data attributes for Toast system -->
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }}">
-      <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-      {{ message }}
-    </div>
+    <span data-toast="{{ message }}"
+          data-toast-type="{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
+          style="display:none;"></span>
     {% endfor %}
 
     {% block content %}{% endblock %}
+
   </main>
 </div>
 
+<!-- Toast region (JS populates this) -->
+<div id="toast-region" class="toast-region"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/ui.js"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

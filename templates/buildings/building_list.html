@@ -2,34 +2,108 @@
 {% load humanize %}
 {% block title %}Buildings{% endblock %}
 {% block page_title %}Buildings{% endblock %}
+
 {% block topbar_actions %}
-{% if user.is_op_manager or user.is_super_admin %}<a href="{% url 'buildings:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Add Building</a>{% endif %}
+{% if user.is_op_manager or user.is_super_admin %}
+<a href="{% url 'buildings:create' %}" class="btn btn-accent">
+  <i class="fas fa-plus"></i> Add Building
+</a>
+{% endif %}
 {% endblock %}
+
 {% block content %}
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
-  {% for b in buildings %}
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">{{ b.name }}</span>
-      <span class="badge badge-gold">{{ b.occupancy_rate }}% occupied</span>
-    </div>
-    <div class="card-body">
-      <div class="occ-bar-wrap" style="margin-bottom:12px;"><div class="occ-bar-fill" style="width:{{ b.occupancy_rate }}%;"></div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
-        <div><div class="kpi-label">Total Rooms</div><div style="font-weight:600;font-family:'DM Mono',monospace;">{{ b.total_rooms }}</div></div>
-        <div><div class="kpi-label">Occupied</div><div style="font-weight:600;font-family:'DM Mono',monospace;">{{ b.occupied_rooms }}</div></div>
-        <div><div class="kpi-label">Vacant</div><div style="font-weight:600;font-family:'DM Mono',monospace;color:var(--warning);">{{ b.vacant_rooms }}</div></div>
-      </div>
-      {% if b.address %}<div style="font-size:12px;color:var(--text-muted);margin-top:10px;"><i class="fas fa-map-marker-alt"></i> {{ b.address }}</div>{% endif %}
-      <div class="divider"></div>
-      <div style="display:flex;gap:8px;">
-        <a href="{% url 'tenants:list' %}?building={{ b.pk }}" class="btn btn-outline btn-sm"><i class="fas fa-users"></i>&nbsp; Tenants</a>
-        {% if user.is_op_manager %}<a href="{% url 'buildings:edit' b.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>{% endif %}
-      </div>
-    </div>
+<div class="card">
+  <div class="filter-bar">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text"
+           placeholder="Search buildings..."
+           data-search-table="buildings-table"
+           style="padding-left:30px;width:220px;">
+    <span class="filter-spacer"></span>
+    <span class="filter-summary" data-search-counter="buildings-table">
+      {{ buildings|length }} building{{ buildings|length|pluralize }}
+    </span>
   </div>
-  {% empty %}
-  <div class="card"><div class="card-body" style="text-align:center;padding:32px;color:var(--text-muted);">No buildings yet.</div></div>
-  {% endfor %}
+
+  <div class="table-container">
+    <table class="rems-table" id="buildings-table" data-sortable>
+      <thead>
+        <tr>
+          <th data-sort>Building Name</th>
+          <th>Address</th>
+          <th data-sort style="text-align:center;">Total Rooms</th>
+          <th data-sort style="text-align:center;">Occupied</th>
+          <th data-sort style="text-align:center;">Vacant</th>
+          <th>Occupancy</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in buildings %}
+        <tr>
+          <td>
+            <span class="fw-600">{{ b.name }}</span>
+          </td>
+          <td class="text-muted" style="font-size:13px;max-width:240px;">
+            {% if b.address %}
+            <i class="fas fa-map-marker-alt" style="font-size:11px;margin-right:4px;"></i>{{ b.address }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="money text-center fw-600">{{ b.total_rooms }}</td>
+          <td class="money text-center text-debit fw-600">{{ b.occupied_rooms }}</td>
+          <td class="money text-center {% if b.vacant_rooms > 0 %}text-credit{% else %}text-muted{% endif %} fw-600">
+            {{ b.vacant_rooms }}
+          </td>
+          <td style="min-width:140px;">
+            <div style="display:flex;align-items:center;gap:var(--sp-2);">
+              <div class="occ-bar-wrap" style="height:6px;">
+                <div class="occ-bar-fill" style="width:{{ b.occupancy_rate }}%;"></div>
+              </div>
+              <span style="font-size:12px;font-weight:600;color:var(--accent);min-width:36px;text-align:right;">
+                {{ b.occupancy_rate }}%
+              </span>
+            </div>
+          </td>
+          <td style="white-space:nowrap;">
+            <a href="{% url 'tenants:list' %}?building={{ b.pk }}"
+               class="btn btn-ghost btn-sm" title="View tenants">
+              <i class="fas fa-users"></i> Tenants
+            </a>
+            {% if user.is_op_manager %}
+            <a href="{% url 'buildings:edit' b.pk %}"
+               class="btn btn-ghost btn-icon btn-sm" title="Edit building">
+              <i class="fas fa-pencil"></i>
+            </a>
+            {% if user.can_delete %}
+            <a href="{% url 'buildings:delete' b.pk %}"
+               class="btn btn-ghost btn-icon btn-sm"
+               style="color:var(--danger);"
+               data-confirm="Delete '{{ b.name }}'? All tenants, receipts and ledger entries will be permanently removed."
+               data-confirm-title="Delete Building"
+               data-confirm-btn="Delete Building"
+               title="Delete">
+              <i class="fas fa-trash"></i>
+            </a>
+            {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row">
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-building"></i></div>
+              <div class="empty-title">No buildings yet</div>
+              <div class="empty-sub">Add your first building to start managing tenants and rent.</div>
+              {% if user.is_op_manager %}
+              <a href="{% url 'buildings:create' %}" class="btn btn-accent">Add Building</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

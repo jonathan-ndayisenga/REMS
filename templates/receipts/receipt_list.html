@@ -2,38 +2,70 @@
 {% load humanize %}
 {% block title %}Receipts{% endblock %}
 {% block page_title %}Receipts{% endblock %}
+
 {% block topbar_actions %}
-<a href="{% url 'receipts:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Issue Receipt</a>
+<a href="{% url 'receipts:create' %}" class="btn btn-accent">
+  <i class="fas fa-plus"></i> Issue Receipt
+</a>
 {% endblock %}
+
 {% block content %}
 <div class="card">
   <div class="filter-bar">
-    <form method="get" style="display:flex;gap:10px;align-items:center;">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" placeholder="Search receipts..."
+           data-search-table="receipts-table"
+           style="padding-left:30px;width:220px;">
+    <form method="get" style="display:contents;">
       <select name="building" onchange="this.form.submit()">
         <option value="">All Buildings</option>
-        {% for b in buildings %}<option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        {% for b in buildings %}
+        <option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
       </select>
     </form>
-    <span style="margin-left:auto;font-size:12px;color:var(--text-muted);">{{ receipts|length }} receipt{{ receipts|length|pluralize }}</span>
+    <span class="filter-spacer"></span>
+    <span class="filter-summary" data-search-counter="receipts-table">{{ receipts|length }} receipt{{ receipts|length|pluralize }}</span>
   </div>
+
   <div class="table-container">
-    <table class="rems-table">
-      <thead><tr><th>Receipt #</th><th>Tenant</th><th>Building</th><th>Date</th><th>Gross (UGX)</th><th>Tax (UGX)</th><th>Net (UGX)</th><th>Method</th><th></th></tr></thead>
+    <table class="rems-table" id="receipts-table" data-sortable>
+      <thead>
+        <tr>
+          <th>Receipt No.</th>
+          <th data-sort>Tenant</th>
+          <th>Building</th>
+          <th data-sort>Date</th>
+          <th>Method</th>
+          <th data-sort style="text-align:right;">Net Amount (UGX)</th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody>
         {% for r in receipts %}
         <tr>
-          <td><a href="{% url 'receipts:detail' r.pk %}" style="font-family:'DM Mono',monospace;color:var(--navy-light);font-size:12px;">RCP-{{ r.receipt_number }}</a></td>
-          <td>{{ r.tenant.full_name }}</td>
-          <td>{{ r.building.name }}</td>
-          <td>{{ r.receipt_date|date:"d M Y" }}</td>
-          <td class="money">{{ r.gross_amount|floatformat:0|intcomma }}</td>
-          <td class="money text-credit">{{ r.tax_deducted|floatformat:0|intcomma }}</td>
-          <td class="money text-debit" style="font-weight:600;">{{ r.net_amount|floatformat:0|intcomma }}</td>
-          <td><span class="badge badge-navy">{{ r.get_payment_method_display }}</span></td>
-          <td><a href="{% url 'receipts:detail' r.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-print"></i></a></td>
+          <td><span class="money fw-600 text-brand" style="font-size:12px;">RCP-{{ r.receipt_number }}</span></td>
+          <td class="fw-500">{{ r.tenant.full_name }}</td>
+          <td class="text-muted">{{ r.building.name }}</td>
+          <td class="text-sub nowrap">{{ r.receipt_date|date:"d M Y" }}</td>
+          <td><span class="badge badge-slate">{{ r.get_payment_method_display }}</span></td>
+          <td class="money text-debit text-right fw-600">{{ r.net_amount|floatformat:0|intcomma }}</td>
+          <td style="white-space:nowrap;">
+            <a href="{% url 'receipts:detail' r.pk %}" class="btn btn-ghost btn-icon btn-sm" title="View"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'receipts:pdf' r.pk %}" class="btn btn-ghost btn-icon btn-sm" title="PDF"><i class="fas fa-file-pdf"></i></a>
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted);">No receipts found.</td></tr>
+        <tr class="empty-row">
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+              <div class="empty-title">No receipts yet</div>
+              <div class="empty-sub">Issue your first receipt when a tenant makes a payment.</div>
+              <a href="{% url 'receipts:create' %}" class="btn btn-accent">Issue Receipt</a>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

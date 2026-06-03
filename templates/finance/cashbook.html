@@ -2,50 +2,105 @@
 {% load humanize %}
 {% block title %}Cashbook{% endblock %}
 {% block page_title %}Cashbook{% endblock %}
+
+{% block topbar_actions %}
+<button onclick="window.print()" class="btn btn-ghost btn-sm no-print">
+  <i class="fas fa-print"></i> Print
+</button>
+{% endblock %}
+
 {% block content %}
-<div class="card" style="margin-bottom:16px;">
+
+<!-- Summary strip -->
+<div class="grid-3" style="margin-bottom:20px;">
+  <div class="kpi-card kpi-green">
+    <div class="kpi-label">Total In</div>
+    <div class="kpi-value money-xl">{{ total_debit|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX receipts</div>
+  </div>
+  <div class="kpi-card kpi-red">
+    <div class="kpi-label">Total Out</div>
+    <div class="kpi-value money-xl">{{ total_credit|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX expenses</div>
+  </div>
+  <div class="kpi-card {% if net >= 0 %}kpi-gold{% else %}kpi-red{% endif %}">
+    <div class="kpi-label">Net Balance</div>
+    <div class="kpi-value money-xl">{{ net|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">UGX cash position</div>
+  </div>
+</div>
+
+<div class="card">
   <div class="filter-bar">
-    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <label style="font-size:12px;color:var(--text-muted);font-weight:600;">From</label>
+    <span class="filter-label">From</span>
+    <form method="get" style="display:contents;">
       <input type="date" name="date_from" value="{{ request.GET.date_from }}">
-      <label style="font-size:12px;color:var(--text-muted);font-weight:600;">To</label>
+      <span class="filter-label">To</span>
       <input type="date" name="date_to" value="{{ request.GET.date_to }}">
       <select name="building">
         <option value="">All Buildings</option>
-        {% for b in buildings %}<option value="{{ b.pk }}" {% if request.GET.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        {% for b in buildings %}
+        <option value="{{ b.pk }}" {% if request.GET.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
       </select>
-      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; Filter</button>
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fas fa-filter"></i> Filter
+      </button>
     </form>
-    <div style="margin-left:auto;display:flex;gap:20px;align-items:center;">
-      <span style="font-size:12px;">Total In: <strong class="money text-debit">UGX {{ total_debit|floatformat:0|intcomma }}</strong></span>
-      <span style="font-size:12px;">Total Out: <strong class="money text-credit">UGX {{ total_credit|floatformat:0|intcomma }}</strong></span>
-      <span style="font-size:12px;">Net: <strong class="money">UGX {{ net|floatformat:0|intcomma }}</strong></span>
-    </div>
+    <span class="filter-spacer"></span>
+    <span class="filter-summary">{{ entries|length }} entr{{ entries|length|pluralize:"y,ies" }}</span>
   </div>
+
   <div class="table-container">
-    <table class="rems-table">
-      <thead><tr><th>Date</th><th>Description</th><th>Building</th><th>Type</th><th>Debit (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead>
+    <table class="rems-table" data-sortable>
+      <thead>
+        <tr>
+          <th data-sort>Date</th>
+          <th>Description</th>
+          <th>Building</th>
+          <th>Type</th>
+          <th data-sort style="text-align:right;">Debit (UGX)</th>
+          <th data-sort style="text-align:right;">Credit (UGX)</th>
+          <th data-sort style="text-align:right;">Balance (UGX)</th>
+        </tr>
+      </thead>
       <tbody>
         {% for e in entries %}
         <tr>
-          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td class="nowrap text-sub">{{ e.entry_date|date:"d M Y" }}</td>
           <td>{{ e.description }}</td>
-          <td>{{ e.building.name|default:"—" }}</td>
-          <td><span class="badge {% if e.source_type == 'receipt' %}badge-success{% else %}badge-warning{% endif %}">{{ e.get_source_type_display }}</span></td>
-          <td class="money text-debit">{% if e.debit %}{{ e.debit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
-          <td class="money text-credit">{% if e.credit %}{{ e.credit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
-          <td class="money">{{ e.balance|floatformat:0|intcomma }}</td>
+          <td class="text-muted">{{ e.building.name|default:"—" }}</td>
+          <td>
+            <span class="badge {% if e.source_type == 'receipt' %}badge-green{% else %}badge-amber{% endif %}">
+              {{ e.get_source_type_display }}
+            </span>
+          </td>
+          <td class="money text-debit text-right">{% if e.debit %}{{ e.debit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money text-credit text-right">{% if e.credit %}{{ e.credit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money text-right fw-600">{{ e.balance|floatformat:0|intcomma }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No entries found.</td></tr>
+        <tr class="empty-row">
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-book"></i></div>
+              <div class="empty-title">No cashbook entries</div>
+              <div class="empty-sub">Entries appear here when receipts and expenses are recorded.</div>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
-      <tfoot><tr>
-        <td colspan="4" style="font-weight:700;padding:11px 16px;background:var(--navy);color:#fff;">TOTALS</td>
-        <td class="money text-debit" style="padding:11px 16px;background:var(--navy);color:#fff;font-weight:700;">{{ total_debit|floatformat:0|intcomma }}</td>
-        <td class="money text-credit" style="padding:11px 16px;background:var(--navy);color:#fff;font-weight:700;">{{ total_credit|floatformat:0|intcomma }}</td>
-        <td class="money" style="padding:11px 16px;background:var(--navy);color:#C9A84C;font-weight:700;">{{ net|floatformat:0|intcomma }}</td>
-      </tr></tfoot>
+      {% if entries %}
+      <tfoot>
+        <tr>
+          <td colspan="4" class="fw-600">Totals</td>
+          <td class="money tfoot-accent text-right">{{ total_debit|floatformat:0|intcomma }}</td>
+          <td class="money tfoot-accent text-right">{{ total_credit|floatformat:0|intcomma }}</td>
+          <td class="money tfoot-accent text-right">{{ net|floatformat:0|intcomma }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
     </table>
   </div>
 </div>

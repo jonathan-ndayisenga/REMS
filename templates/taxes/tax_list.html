@@ -1,34 +1,81 @@
 {% extends 'base.html' %}
 {% block title %}Tax Settings{% endblock %}
 {% block page_title %}Tax Settings{% endblock %}
+
 {% block topbar_actions %}
-{% if user.can_configure_taxes %}<a href="{% url 'taxes:create' %}" class="btn btn-gold"><i class="fas fa-plus"></i>&nbsp; Add Tax</a>{% endif %}
+{% if user.can_configure_taxes %}
+<a href="{% url 'taxes:create' %}" class="btn btn-accent">
+  <i class="fas fa-plus"></i> Add Tax
+</a>
+{% endif %}
 {% endblock %}
+
 {% block content %}
-<div style="max-width:680px;">
+<div style="max-width:760px;">
   {% if not user.can_configure_taxes %}
-  <div class="alert alert-info"><i class="fas fa-info-circle"></i> Tax settings are configured by the Accountant. You can view but not edit.</div>
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle alert-icon"></i>
+    <span>Tax settings are managed by the Accountant. You have view-only access.</span>
+  </div>
   {% endif %}
+
   <div class="card">
     <div class="table-container">
-      <table class="rems-table">
-        <thead><tr><th>Tax Name</th><th>Description</th><th>Rate (%)</th><th>Status</th>{% if user.can_configure_taxes %}<th>Actions</th>{% endif %}</tr></thead>
+      <table class="rems-table" data-sortable>
+        <thead>
+          <tr>
+            <th data-sort>Tax Name</th>
+            <th>Applies At</th>
+            <th>Description</th>
+            <th data-sort style="text-align:right;">Rate (%)</th>
+            <th>Status</th>
+            {% if user.can_configure_taxes %}<th></th>{% endif %}
+          </tr>
+        </thead>
         <tbody>
           {% for t in taxes %}
           <tr>
-            <td style="font-weight:500;">{{ t.name }}</td>
-            <td style="color:var(--text-muted);font-size:13px;">{{ t.description|default:"—" }}</td>
-            <td><span class="badge badge-gold" style="font-family:'DM Mono',monospace;">{{ t.percentage }}%</span></td>
-            <td><span class="badge {% if t.is_active %}badge-success{% else %}badge-muted{% endif %}">{% if t.is_active %}Active{% else %}Inactive{% endif %}</span></td>
-            {% if user.can_configure_taxes %}
+            <td class="fw-600">{{ t.name }}</td>
             <td>
-              <a href="{% url 'taxes:edit' t.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></a>
-              <a href="{% url 'taxes:delete' t.pk %}" class="btn btn-outline btn-sm" style="color:var(--danger);"><i class="fas fa-trash"></i></a>
+              <span class="badge {% if t.tax_type == 'receipt' %}badge-blue{% else %}badge-amber{% endif %}">
+                {{ t.get_tax_type_display }}
+              </span>
+            </td>
+            <td class="text-muted" style="font-size:13px;">{{ t.description|default:"—" }}</td>
+            <td class="money text-right fw-600">{{ t.percentage }}%</td>
+            <td>
+              <span class="badge {% if t.is_active %}badge-green{% else %}badge-slate{% endif %}">
+                <span class="status-dot {% if t.is_active %}dot-green{% else %}dot-slate{% endif %}"></span>
+                {% if t.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </td>
+            {% if user.can_configure_taxes %}
+            <td style="white-space:nowrap;">
+              <a href="{% url 'taxes:edit' t.pk %}" class="btn btn-ghost btn-icon btn-sm" title="Edit"><i class="fas fa-pencil"></i></a>
+              <a href="{% url 'taxes:delete' t.pk %}" class="btn btn-ghost btn-icon btn-sm" title="Delete"
+                 style="color:var(--danger);"
+                 data-confirm="Remove tax '{{ t.name }}'?"
+                 data-confirm-title="Remove Tax Setting"
+                 data-confirm-btn="Remove"
+                 data-delete-label="{{ t.name }}">
+                <i class="fas fa-trash"></i>
+              </a>
             </td>
             {% endif %}
           </tr>
           {% empty %}
-          <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">No tax settings configured.</td></tr>
+          <tr class="empty-row">
+            <td colspan="{% if user.can_configure_taxes %}6{% else %}5{% endif %}">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-percent"></i></div>
+                <div class="empty-title">No tax settings configured</div>
+                <div class="empty-sub">Add Uganda tax settings to automatically deduct taxes on receipts.</div>
+                {% if user.can_configure_taxes %}
+                <a href="{% url 'taxes:create' %}" class="btn btn-accent">Add Tax Setting</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>

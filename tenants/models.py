@@ -30,7 +30,7 @@ class Tenant(models.Model):
     def get_balance(self):
         """Positive = tenant owes, Negative = tenant has credit."""
         from finance.models import LedgerEntry
-        entries = LedgerEntry.objects.filter(tenant=self)
+        entries = LedgerEntry.objects.filter(tenant=self, account_type=LedgerEntry.ACCT_DEBTOR)
         total_debit  = sum(e.debit_amount  for e in entries)
         total_credit = sum(e.credit_amount for e in entries)
         return total_debit - total_credit

@@ -32,10 +32,13 @@
         <tr>
           <th>Voucher No.</th>
           <th data-sort>Description</th>
+          <th>Supplier / Payee</th>
           <th>Category</th>
           <th>Building</th>
           <th data-sort>Date</th>
-          <th data-sort style="text-align:right;">Amount (UGX)</th>
+          <th data-sort style="text-align:right;">Invoice (UGX)</th>
+          <th style="text-align:right;">Paid (UGX)</th>
+          <th>Status</th>
           <th>Recorded By</th>
         </tr>
       </thead>
@@ -46,15 +49,20 @@
             <a href="{% url 'expenses:detail' e.pk %}" class="money fw-600 text-brand" style="font-size:12px;">PV-{{ e.voucher_number }}</a>
           </td>
           <td class="fw-500">{{ e.description }}</td>
+          <td class="text-muted" style="font-size:13px;">
+            {% if e.supplier %}<a href="{% url 'expenses:supplier_detail' e.supplier.pk %}" style="color:var(--navy);">{{ e.supplier.name }}</a>{% elif e.payee %}{{ e.payee }}{% else %}—{% endif %}
+          </td>
           <td><span class="badge badge-slate">{{ e.category.name|default:"—" }}</span></td>
           <td class="text-muted">{{ e.building.name }}</td>
           <td class="nowrap text-sub">{{ e.expense_date|date:"d M Y" }}</td>
           <td class="money text-credit text-right fw-600">{{ e.amount|floatformat:0|intcomma }}</td>
+          <td class="money text-right" style="font-size:13px;">{{ e.paid_amount|floatformat:0|intcomma }}</td>
+          <td><span class="badge {% if e.payment_status == 'paid' %}badge-success{% elif e.payment_status == 'partial' %}badge-warning{% else %}badge-navy{% endif %}">{{ e.get_payment_status_display }}</span></td>
           <td class="text-muted" style="font-size:12px;">{{ e.recorded_by.get_full_name|default:"—" }}</td>
         </tr>
         {% empty %}
         <tr class="empty-row">
-          <td colspan="7">
+          <td colspan="10">
             <div class="empty-state">
               <div class="empty-icon"><i class="fas fa-file-invoice-dollar"></i></div>
               <div class="empty-title">No expenses recorded</div>

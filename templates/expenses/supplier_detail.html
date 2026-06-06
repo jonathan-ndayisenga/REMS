@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block page_title %}Supplier: {{ supplier.name }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'expenses:supplier_edit' supplier.pk %}" class="btn btn-outline btn-sm"><i class="fas fa-edit"></i>&nbsp; Edit</a>
+{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start;">
+
+  <!-- Info card -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">Contact</span></div>
+    <div class="card-body">
+      <div class="receipt-row"><label>Phone</label><strong>{{ supplier.phone|default:"—" }}</strong></div>
+      <div class="receipt-row"><label>Email</label><strong>{{ supplier.email|default:"—" }}</strong></div>
+      <div class="receipt-row"><label>Address</label><strong>{{ supplier.address|default:"—" }}</strong></div>
+      {% if supplier.notes %}<div class="receipt-row"><label>Notes</label><strong>{{ supplier.notes }}</strong></div>{% endif %}
+      <hr style="margin:16px 0;border:none;border-top:1px solid var(--border);">
+      <div class="receipt-row"><label>Total Invoiced</label><strong class="money">UGX {{ supplier.total_invoiced|floatformat:0|intcomma }}</strong></div>
+      <div class="receipt-row"><label>Total Paid</label><strong class="money">UGX {{ supplier.total_paid|floatformat:0|intcomma }}</strong></div>
+      <div class="receipt-row"><label>Outstanding</label><strong class="money {% if supplier.balance_outstanding > 0 %}text-credit{% endif %}">UGX {{ supplier.balance_outstanding|floatformat:0|intcomma }}</strong></div>
+    </div>
+  </div>
+
+  <div>
+    <!-- Expense history -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span class="card-title">Expense History</span></div>
+      <div class="table-container">
+        <table class="rems-table">
+          <thead><tr><th>Date</th><th>Description</th><th>Building</th><th class="money">Invoice</th><th class="money">Paid</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for e in expenses %}
+            <tr>
+              <td style="white-space:nowrap;">{{ e.expense_date|date:"d M Y" }}</td>
+              <td><a href="{% url 'expenses:detail' e.pk %}" style="color:var(--navy);">{{ e.description }}</a></td>
+              <td>{{ e.building.name }}</td>
+              <td class="money">{{ e.amount|floatformat:0|intcomma }}</td>
+              <td class="money">{{ e.paid_amount|floatformat:0|intcomma }}</td>
+              <td><span class="badge {% if e.payment_status == 'paid' %}badge-success{% elif e.payment_status == 'partial' %}badge-warning{% else %}badge-navy{% endif %}">{{ e.get_payment_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">No expenses recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Creditor ledger T-account -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Creditor Ledger</span></div>
+      <div class="table-container">
+        <table class="rems-table">
+          <thead>
+            <tr>
+              <th colspan="3" style="text-align:center;background:var(--bg-light);">DR (Payments Out)</th>
+              <th colspan="3" style="text-align:center;background:var(--bg-light);">CR (Invoices In)</th>
+            </tr>
+            <tr><th>Date</th><th>Description</th><th class="money">Amount</th><th>Date</th><th>Description</th><th class="money">Amount</th></tr>
+          </thead>
+          <tbody>
+            {% with dr_entries=ledger|dictsort:"entry_date" %}
+            {% for e in ledger %}
+            <tr>
+              {% if e.debit_amount %}
+              <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+              <td style="font-size:13px;">{{ e.description }}</td>
+              <td class="money">{{ e.debit_amount|floatformat:0|intcomma }}</td>
+              {% else %}
+              <td colspan="3"></td>
+              {% endif %}
+              {% if e.credit_amount %}
+              <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+              <td style="font-size:13px;">{{ e.description }}</td>
+              <td class="money text-credit">{{ e.credit_amount|floatformat:0|intcomma }}</td>
+              {% else %}
+              <td colspan="3"></td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+            {% endwith %}
+            {% if not ledger %}
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">No ledger entries.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

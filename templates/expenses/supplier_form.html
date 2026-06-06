@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div style="max-width:720px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">{{ title }}</span>
+      {% if obj %}<span class="badge badge-navy">Editing: {{ obj }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="form-group {% if field.field.widget.attrs.rows %}form-full{% endif %}">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="form-error">{{ field.errors.0 }}</div>{% endif %}
+            {% if field.help_text %}<div class="form-hint">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <button type="submit" class="btn btn-gold"><i class="fas fa-save"></i>&nbsp; Save</button>
+          <a href="{% url 'expenses:supplier_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

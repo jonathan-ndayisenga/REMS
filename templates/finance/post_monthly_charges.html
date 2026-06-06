@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Post Monthly Charges{% endblock %}
+{% block page_title %}Post Monthly Charges{% endblock %}
+{% block content %}
+<div style="max-width:480px;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Post Monthly Rent Charges</span></div>
+    <div class="card-body">
+      {% if messages %}
+      {% for m in messages %}
+      <div class="alert alert-{{ m.tags }}" style="margin-bottom:16px;">{{ m }}</div>
+      {% endfor %}
+      {% endif %}
+      <p style="color:var(--text-muted);margin-bottom:20px;font-size:14px;">
+        This will post a rent charge (debit) to every active tenant's ledger for the selected period.
+        Tenants who already have a charge for this period will be skipped.
+      </p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Month</label>
+            <select name="month" class="form-control">
+              {% for num, name in months %}
+              <option value="{{ num }}" {% if num == current_month %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Year</label>
+            <select name="year" class="form-control">
+              {% for y in years %}
+              <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <button type="submit" class="btn btn-gold"><i class="fas fa-bolt"></i>&nbsp; Post Charges</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

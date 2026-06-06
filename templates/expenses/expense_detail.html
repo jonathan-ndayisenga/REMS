@@ -16,9 +16,12 @@
       <div class="receipt-row"><label>Building</label><strong>{{ expense.building.name }}</strong></div>
       <div class="receipt-row"><label>Category</label><strong>{{ expense.category.name|default:"—" }}</strong></div>
       <div class="receipt-row"><label>Description</label><strong>{{ expense.description }}</strong></div>
-      {% if expense.payee %}<div class="receipt-row"><label>Payee</label><strong>{{ expense.payee }}</strong></div>{% endif %}
+      {% if expense.supplier %}<div class="receipt-row"><label>Supplier</label><strong><a href="{% url 'expenses:supplier_detail' expense.supplier.pk %}" style="color:var(--navy);">{{ expense.supplier.name }}</a></strong></div>{% elif expense.payee %}<div class="receipt-row"><label>Payee</label><strong>{{ expense.payee }}</strong></div>{% endif %}
       {% if expense.reference_no %}<div class="receipt-row"><label>Reference</label><strong>{{ expense.reference_no }}</strong></div>{% endif %}
-      <div class="receipt-total"><span>AMOUNT PAID</span><span class="money" style="font-size:18px;">UGX {{ expense.amount|floatformat:0|intcomma }}</span></div>
+      <div class="receipt-total"><span>INVOICE AMOUNT</span><span class="money" style="font-size:18px;">UGX {{ expense.amount|floatformat:0|intcomma }}</span></div>
+      <div class="receipt-row"><label>Paid</label><strong class="money">UGX {{ expense.paid_amount|floatformat:0|intcomma }}</strong></div>
+      <div class="receipt-row"><label>Outstanding</label><strong class="money {% if expense.balance_due > 0 %}text-credit{% endif %}">UGX {{ expense.balance_due|floatformat:0|intcomma }}</strong></div>
+      <div class="receipt-row"><label>Status</label><strong><span class="badge {% if expense.payment_status == 'paid' %}badge-success{% elif expense.payment_status == 'partial' %}badge-warning{% else %}badge-navy{% endif %}">{{ expense.get_payment_status_display }}</span></strong></div>
       <div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);">Recorded by {{ expense.recorded_by.get_full_name|default:"—" }} &nbsp;·&nbsp; {{ expense.created_at|date:"d M Y H:i" }}</div>
     </div>
   </div>

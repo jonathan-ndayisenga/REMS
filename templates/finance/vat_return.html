@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}VAT Return{% endblock %}
+{% block page_title %}VAT / Tax Return{% endblock %}
+{% block topbar_actions %}
+  <button onclick="window.print()" class="btn btn-outline btn-sm no-print"><i class="fas fa-print"></i>&nbsp; Print</button>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:13px;color:var(--text-muted);">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}">
+      <label style="font-size:13px;color:var(--text-muted);">To</label>
+      <input type="date" name="date_to"   value="{{ date_to }}">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; Filter</button>
+    </form>
+  </div>
+</div>
+
+<!-- Summary by tax type -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header"><span class="card-title">Tax Summary by Type</span></div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead>
+        <tr>
+          <th>Tax Name</th>
+          <th class="money">Gross Rent (UGX)</th>
+          <th class="money">Tax Collected (UGX)</th>
+          <th class="money">Net Rent (UGX)</th>
+          <th class="money">Receipts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tax_name, totals in tax_totals.items %}
+        <tr>
+          <td><strong>{{ tax_name }}</strong></td>
+          <td class="money">{{ totals.gross|floatformat:0|intcomma }}</td>
+          <td class="money text-credit">{{ totals.tax|floatformat:0|intcomma }}</td>
+          <td class="money">{{ totals.net|floatformat:0|intcomma }}</td>
+          <td class="money">{{ totals.count }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">No receipts with tax in this period.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:var(--bg-light);">
+          <td style="padding:10px;">TOTALS ({{ receipt_count }} receipts)</td>
+          <td class="money">{{ grand_gross|floatformat:0|intcomma }}</td>
+          <td class="money text-credit">{{ grand_tax|floatformat:0|intcomma }}</td>
+          <td class="money">{{ grand_net|floatformat:0|intcomma }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- Receipt detail -->
+<div class="card">
+  <div class="card-header"><span class="card-title">Receipt Detail</span></div>
+  <div class="table-container">
+    <table class="rems-table">
+      <thead>
+        <tr><th>Date</th><th>Receipt No.</th><th>Tenant</th><th>Building</th><th class="money">Gross (UGX)</th><th class="money">Tax Deducted (UGX)</th><th class="money">Net (UGX)</th></tr>
+      </thead>
+      <tbody>
+        {% for r in receipts %}
+        <tr>
+          <td style="white-space:nowrap;">{{ r.receipt_date|date:"d M Y" }}</td>
+          <td style="font-family:monospace;">RCP-{{ r.receipt_number }}</td>
+          <td>{{ r.tenant.full_name }}</td>
+          <td>{{ r.building.name }}</td>
+          <td class="money">{{ r.gross_amount|floatformat:0|intcomma }}</td>
+          <td class="money text-credit">{{ r.tax_deducted|floatformat:0|intcomma }}</td>
+          <td class="money">{{ r.net_amount|floatformat:0|intcomma }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No receipts in this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

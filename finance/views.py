@@ -1,13 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.db.models import Sum, Q
 from decimal import Decimal
 import datetime
-from .models import LedgerEntry, CashbookEntry
+from .models import LedgerEntry, CashbookEntry, MonthlyAccrual
 from tenants.models import Tenant
 from receipts.models import Receipt
-from expenses.models import Expense
+from expenses.models import Expense, Supplier
 
 
 @login_required
@@ -43,7 +44,9 @@ def ledger(request):
     if not request.user.can_access_finance() and not request.user.can_manage_tenants():
         return HttpResponseForbidden()
     buildings = request.user.get_buildings_qs()
-    entries = LedgerEntry.objects.filter(building__in=buildings).select_related('tenant', 'building')
+    entries = LedgerEntry.objects.filter(
+        building__in=buildings, account_type=LedgerEntry.ACCT_DEBTOR
+    ).select_related('tenant', 'building')
 
     tenant_id = request.GET.get('tenant')
     building_id = request.GET.get('building')
@@ -63,6 +66,176 @@ def ledger(request):
     return render(request, 'finance/ledger.html', {
         'entries': entries, 'buildings': buildings, 'tenants': tenants,
         'tenant_filter': tenant_id, 'building_filter': building_id,
+    })
+
+
+@login_required
+def debtor_ledger(request):
+    """Per-tenant debtor ledger with T-account view."""
+    if not request.user.can_access_finance() and not request.user.can_manage_tenants():
+        return HttpResponseForbidden()
+    buildings = request.user.get_buildings_qs()
+    tenant_id = request.GET.get('tenant')
+    building_id = request.GET.get('building')
+
+    tenants = Tenant.objects.filter(building__in=buildings, status='active').select_related('building')
+    if building_id:
+        tenants = tenants.filter(building_id=building_id)
+
+    selected_tenant = None
+    entries = []
+    total_dr = total_cr = balance = Decimal('0')
+
+    if tenant_id:
+        selected_tenant = get_object_or_404(Tenant, pk=tenant_id, building__in=buildings)
+        entries = list(selected_tenant.ledger_entries.filter(
+            account_type=LedgerEntry.ACCT_DEBTOR
+        ).order_by('entry_date', 'created_at'))
+        total_dr = sum(e.debit_amount  for e in entries)
+        total_cr = sum(e.credit_amount for e in entries)
+        balance  = total_dr - total_cr
+
+    return render(request, 'finance/debtor_ledger.html', {
+        'tenants': tenants, 'buildings': buildings,
+        'selected_tenant': selected_tenant, 'entries': entries,
+        'total_dr': total_dr, 'total_cr': total_cr, 'balance': balance,
+        'tenant_filter': tenant_id, 'building_filter': building_id,
+    })
+
+
+@login_required
+def creditor_ledger(request):
+    """Per-supplier creditor ledger with T-account view."""
+    if not request.user.can_access_finance():
+        return HttpResponseForbidden()
+    org = request.user.organisation
+    supplier_id = request.GET.get('supplier')
+
+    suppliers = Supplier.objects.filter(organisation=org)
+    selected_supplier = None
+    entries = []
+    total_dr = total_cr = balance = Decimal('0')
+
+    if supplier_id:
+        selected_supplier = get_object_or_404(Supplier, pk=supplier_id, organisation=org)
+        entries = list(selected_supplier.ledger_entries.filter(
+            account_type=LedgerEntry.ACCT_CREDITOR
+        ).order_by('entry_date', 'created_at'))
+        total_dr = sum(e.debit_amount  for e in entries)
+        total_cr = sum(e.credit_amount for e in entries)
+        balance  = total_cr - total_dr  # creditor: CR increases liability
+
+    return render(request, 'finance/creditor_ledger.html', {
+        'suppliers': suppliers,
+        'selected_supplier': selected_supplier, 'entries': entries,
+        'total_dr': total_dr, 'total_cr': total_cr, 'balance': balance,
+        'supplier_filter': supplier_id,
+    })
+
+
+@login_required
+def post_monthly_charges(request):
+    """UI trigger: post rent charges for a given month/year to all active tenants."""
+    if not request.user.can_access_finance():
+        return HttpResponseForbidden()
+    buildings = request.user.get_buildings_qs()
+    today = datetime.date.today()
+
+    if request.method == 'POST':
+        month = int(request.POST.get('month', today.month))
+        year  = int(request.POST.get('year',  today.year))
+        charge_date = datetime.date(year, month, 1)
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
+             or request.META.get('REMOTE_ADDR')
+
+        tenants = Tenant.objects.filter(building__in=buildings, status='active')
+        posted = skipped = 0
+        for tenant in tenants:
+            if MonthlyAccrual.objects.filter(tenant=tenant, period_month=month, period_year=year).exists():
+                skipped += 1
+                continue
+            rate = tenant.monthly_rate or (tenant.building.standard_rate or Decimal('0'))
+            if rate <= 0:
+                skipped += 1
+                continue
+            prev = tenant.get_balance()
+            entry = LedgerEntry.objects.create(
+                tenant=tenant,
+                building=tenant.building,
+                account_type=LedgerEntry.ACCT_DEBTOR,
+                entry_date=charge_date,
+                period_month=month,
+                period_year=year,
+                description=f'Monthly rent charge — {charge_date.strftime("%B %Y")}',
+                entry_type=LedgerEntry.ENTRY_CHARGE,
+                debit_amount=rate,
+                credit_amount=Decimal('0'),
+                running_balance=prev + rate,
+                created_by=request.user,
+                ip_address=ip,
+            )
+            MonthlyAccrual.objects.create(
+                tenant=tenant,
+                period_month=month,
+                period_year=year,
+                expected_amount=rate,
+                charge_entry=entry,
+            )
+            posted += 1
+
+        messages.success(request, f'Posted charges for {charge_date.strftime("%B %Y")}: {posted} tenants charged, {skipped} skipped.')
+        return redirect('finance:post_monthly_charges')
+
+    months = [(i, datetime.date(2000, i, 1).strftime('%B')) for i in range(1, 13)]
+    years  = list(range(today.year - 2, today.year + 2))
+    return render(request, 'finance/post_monthly_charges.html', {
+        'months': months, 'years': years,
+        'current_month': today.month, 'current_year': today.year,
+    })
+
+
+@login_required
+def vat_return(request):
+    """VAT/tax return report — gross, tax, net grouped by tax type and period."""
+    if not request.user.can_access_finance():
+        return HttpResponseForbidden()
+    buildings = request.user.get_buildings_qs()
+    today = datetime.date.today()
+    date_from = request.GET.get('date_from', str(today.replace(month=1, day=1)))
+    date_to   = request.GET.get('date_to',   str(today))
+
+    receipts = Receipt.objects.filter(
+        building__in=buildings,
+        receipt_date__range=[date_from, date_to],
+    ).order_by('receipt_date')
+
+    # Aggregate by tax type from the tax_breakdown JSON
+    tax_totals = {}  # {tax_name: {gross, tax, net}}
+    grand_gross = grand_tax = grand_net = Decimal('0')
+
+    for r in receipts:
+        grand_gross += r.gross_amount
+        grand_tax   += r.tax_deducted
+        grand_net   += r.net_amount
+        for tax_name, amount_str in (r.tax_breakdown or {}).items():
+            amount = Decimal(str(amount_str))
+            if tax_name not in tax_totals:
+                tax_totals[tax_name] = {'gross': Decimal('0'), 'tax': Decimal('0'), 'net': Decimal('0'), 'count': 0}
+            tax_totals[tax_name]['tax']   += amount
+            tax_totals[tax_name]['count'] += 1
+
+    # Distribute gross/net proportionally if multiple taxes
+    for r in receipts:
+        for tax_name in (r.tax_breakdown or {}):
+            if tax_name in tax_totals:
+                tax_totals[tax_name]['gross'] += r.gross_amount
+                tax_totals[tax_name]['net']   += r.net_amount
+
+    return render(request, 'finance/vat_return.html', {
+        'tax_totals': tax_totals, 'receipts': receipts,
+        'grand_gross': grand_gross, 'grand_tax': grand_tax, 'grand_net': grand_net,
+        'date_from': date_from, 'date_to': date_to,
+        'receipt_count': receipts.count(),
     })
 
 

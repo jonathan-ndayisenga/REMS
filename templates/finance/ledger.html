@@ -21,21 +21,29 @@
   </div>
   <div class="table-container">
     <table class="rems-table">
-      <thead><tr><th>Date</th><th>Tenant</th><th>Building</th><th>Description</th><th>Type</th><th>Debit (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Date</th><th>Tenant</th><th>Building</th><th>Description</th><th>Type</th>
+          <th class="money">Gross (UGX)</th><th class="money">Tax (UGX)</th>
+          <th class="money">Debit (UGX)</th><th class="money">Credit (UGX)</th><th class="money">Balance (UGX)</th>
+        </tr>
+      </thead>
       <tbody>
         {% for e in entries %}
         <tr>
           <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
-          <td><a href="{% url 'tenants:detail' e.tenant.pk %}" style="color:var(--navy);">{{ e.tenant.full_name }}</a></td>
-          <td>{{ e.building.name }}</td>
+          <td>{% if e.tenant %}<a href="{% url 'tenants:detail' e.tenant.pk %}" style="color:var(--navy);">{{ e.tenant.full_name }}</a>{% else %}—{% endif %}</td>
+          <td>{{ e.building.name|default:"—" }}</td>
           <td style="font-size:13px;">{{ e.description }}</td>
           <td><span class="badge {% if e.entry_type == 'payment' %}badge-success{% elif e.entry_type == 'charge' %}badge-warning{% else %}badge-navy{% endif %}">{{ e.get_entry_type_display }}</span></td>
+          <td class="money" style="font-size:12px;color:var(--text-muted);">{% if e.gross_amount %}{{ e.gross_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money" style="font-size:12px;color:var(--text-muted);">{% if e.tax_amount %}{{ e.tax_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
           <td class="money text-credit">{% if e.debit_amount %}{{ e.debit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
           <td class="money text-debit">{% if e.credit_amount %}{{ e.credit_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
           <td class="money">{{ e.running_balance|floatformat:0|intcomma }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">No ledger entries found.</td></tr>
+        <tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted);">No ledger entries found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

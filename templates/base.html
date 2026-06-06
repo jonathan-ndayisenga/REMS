@@ -77,8 +77,12 @@
     {% endif %}
     {% if user.can_expense %}
     <a href="{% url 'expenses:list' %}"
-       class="nav-item {% if request.resolver_match.app_name == 'expenses' %}active{% endif %}">
+       class="nav-item {% if request.resolver_match.app_name == 'expenses' and 'supplier' not in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span> Expenses
+    </a>
+    <a href="{% url 'expenses:supplier_list' %}"
+       class="nav-item {% if 'supplier' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="fas fa-truck"></i></span> Suppliers
     </a>
     {% endif %}
     {% endif %}
@@ -97,9 +101,21 @@
        class="nav-item {% if 'cashbook' in request.path %}active{% endif %}">
       <span class="nav-icon"><i class="fas fa-book"></i></span> Cashbook
     </a>
-    <a href="{% url 'finance:ledger' %}"
-       class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
-      <span class="nav-icon"><i class="fas fa-book-open"></i></span> Ledger
+    <a href="{% url 'finance:debtor_ledger' %}"
+       class="nav-item {% if 'debtor-ledger' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="fas fa-book-open"></i></span> Debtor Ledger
+    </a>
+    <a href="{% url 'finance:creditor_ledger' %}"
+       class="nav-item {% if 'creditor-ledger' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="fas fa-book-reader"></i></span> Creditor Ledger
+    </a>
+    <a href="{% url 'finance:post_monthly_charges' %}"
+       class="nav-item {% if 'post-monthly' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="fas fa-bolt"></i></span> Post Charges
+    </a>
+    <a href="{% url 'finance:vat_return' %}"
+       class="nav-item {% if 'vat-return' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="fas fa-percent"></i></span> VAT Return
     </a>
     <a href="{% url 'finance:trial_balance' %}"
        class="nav-item {% if 'trial-balance' in request.path %}active{% endif %}">

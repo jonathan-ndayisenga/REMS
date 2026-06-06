@@ -15,4 +15,10 @@ class TenantForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user:
-            self.fields['building'].queryset = user.get_buildings_qs()
+            buildings_qs = user.get_buildings_qs()
+            self.fields['building'].queryset = buildings_qs
+            # Pre-fill monthly_rate from the building's standard_rate when only one building is available
+            if not self.instance.pk and buildings_qs.count() == 1:
+                building = buildings_qs.first()
+                if building.standard_rate:
+                    self.fields['monthly_rate'].initial = building.standard_rate

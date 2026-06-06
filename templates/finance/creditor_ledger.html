@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Creditor Ledger{% endblock %}
+{% block page_title %}Creditor Ledger{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <select name="supplier" onchange="this.form.submit()">
+        <option value="">— Select Supplier —</option>
+        {% for s in suppliers %}<option value="{{ s.pk }}" {% if supplier_filter == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; View</button>
+    </form>
+  </div>
+</div>
+
+{% if selected_supplier %}
+<div class="card">
+  <div class="card-header" style="justify-content:space-between;">
+    <span class="card-title">{{ selected_supplier.name }}</span>
+    <span class="badge {% if balance > 0 %}badge-warning{% else %}badge-success{% endif %}">
+      Balance: UGX {{ balance|floatformat:0|intcomma }} {% if balance > 0 %}CR OUTSTANDING{% else %}SETTLED{% endif %}
+    </span>
+  </div>
+  <div class="table-container">
+    <!-- T-account: DR (payments) on left, CR (invoices) on right -->
+    <table class="rems-table">
+      <thead>
+        <tr>
+          <th colspan="3" style="text-align:center;background:rgba(11,25,41,.07);border-right:2px solid var(--border);">DR — Payments Made (Left)</th>
+          <th colspan="3" style="text-align:center;background:rgba(11,25,41,.07);">CR — Invoices Received (Right)</th>
+        </tr>
+        <tr>
+          <th>Date</th><th>Description</th><th class="money" style="border-right:2px solid var(--border);">Amount (UGX)</th>
+          <th>Date</th><th>Description</th><th class="money">Amount (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          {% if e.debit_amount %}
+          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td style="font-size:13px;">{{ e.description }}</td>
+          <td class="money text-debit" style="border-right:2px solid var(--border);">{{ e.debit_amount|floatformat:0|intcomma }}</td>
+          {% else %}
+          <td colspan="3" style="border-right:2px solid var(--border);"></td>
+          {% endif %}
+          {% if e.credit_amount %}
+          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td style="font-size:13px;">{{ e.description }}</td>
+          <td class="money text-credit">{{ e.credit_amount|floatformat:0|intcomma }}</td>
+          {% else %}
+          <td colspan="3"></td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted);">No ledger entries.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:var(--bg-light);">
+          <td colspan="2" style="padding:10px;">Totals</td>
+          <td class="money" style="border-right:2px solid var(--border);">{{ total_dr|floatformat:0|intcomma }}</td>
+          <td colspan="2"></td>
+          <td class="money">{{ total_cr|floatformat:0|intcomma }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:48px;color:var(--text-muted);">
+    <i class="fas fa-truck" style="font-size:40px;margin-bottom:16px;opacity:.3;"></i>
+    <p>Select a supplier above to view their creditor ledger.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

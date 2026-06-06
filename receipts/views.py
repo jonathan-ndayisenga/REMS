@@ -56,21 +56,39 @@ def receipt_create(request):
         ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
              or request.META.get('REMOTE_ADDR')
 
-        # Post to Ledger
+        # Post to Ledger — with gross/tax/net particulars
         prev_balance = receipt.tenant.get_balance()
         LedgerEntry.objects.create(
             tenant=receipt.tenant,
             building=receipt.building,
+            account_type=LedgerEntry.ACCT_DEBTOR,
             entry_date=receipt.receipt_date,
+            period_month=receipt.period_month,
+            period_year=receipt.period_year,
             description=f'Payment received — {receipt.get_payment_method_display()} (RCP-{receipt.receipt_number})',
             entry_type=LedgerEntry.ENTRY_PAYMENT,
             debit_amount=Decimal('0'),
             credit_amount=receipt.net_amount,
+            gross_amount=receipt.gross_amount,
+            tax_amount=receipt.tax_deducted,
+            net_amount=receipt.net_amount,
             running_balance=prev_balance - receipt.net_amount,
             reference=receipt.receipt_number,
             created_by=request.user,
             ip_address=ip,
         )
+
+        # Update MonthlyAccrual if one exists for this period
+        from finance.models import MonthlyAccrual
+        try:
+            accrual = MonthlyAccrual.objects.get(
+                tenant=receipt.tenant,
+                period_month=receipt.period_month,
+                period_year=receipt.period_year,
+            )
+            accrual.apply_payment(receipt.net_amount)
+        except MonthlyAccrual.DoesNotExist:
+            pass
 
         # Post to Cashbook
         last_cb = CashbookEntry.objects.filter(organisation=request.user.organisation).last()

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Debtor Ledger{% endblock %}
+{% block page_title %}Debtor Ledger{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="filter-bar">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <select name="building" onchange="this.form.submit()">
+        <option value="">All Buildings</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if building_filter == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+      <select name="tenant" onchange="this.form.submit()">
+        <option value="">— Select Tenant —</option>
+        {% for t in tenants %}<option value="{{ t.pk }}" {% if tenant_filter == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.full_name }} ({{ t.building.name }})</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i>&nbsp; View</button>
+    </form>
+  </div>
+</div>
+
+{% if selected_tenant %}
+<div class="card">
+  <div class="card-header" style="justify-content:space-between;">
+    <span class="card-title">{{ selected_tenant.full_name }} — Room {{ selected_tenant.room_number }}, {{ selected_tenant.building.name }}</span>
+    <span class="badge {% if balance > 0 %}badge-warning{% else %}badge-success{% endif %}">Balance: UGX {{ balance|floatformat:0|intcomma }} {% if balance > 0 %}DR{% else %}SETTLED{% endif %}</span>
+  </div>
+  <div class="table-container">
+    <!-- T-account layout -->
+    <table class="rems-table">
+      <thead>
+        <tr>
+          <th colspan="4" style="text-align:center;background:rgba(11,25,41,.07);border-right:2px solid var(--border);">DR — Charges (Left)</th>
+          <th colspan="4" style="text-align:center;background:rgba(11,25,41,.07);">CR — Payments (Right)</th>
+        </tr>
+        <tr>
+          <th>Date</th><th>Description</th><th>Period</th><th class="money" style="border-right:2px solid var(--border);">Amount (UGX)</th>
+          <th>Date</th><th>Description</th><th>Gross / Tax / Net</th><th class="money">Amount (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          {% if e.debit_amount %}
+          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td style="font-size:13px;">{{ e.description }}</td>
+          <td style="white-space:nowrap;font-size:12px;color:var(--text-muted);">{% if e.period_month %}{{ e.period_month }}/{{ e.period_year }}{% endif %}</td>
+          <td class="money text-credit" style="border-right:2px solid var(--border);">{{ e.debit_amount|floatformat:0|intcomma }}</td>
+          {% else %}
+          <td colspan="4" style="border-right:2px solid var(--border);"></td>
+          {% endif %}
+          {% if e.credit_amount %}
+          <td style="white-space:nowrap;">{{ e.entry_date|date:"d M Y" }}</td>
+          <td style="font-size:13px;">{{ e.description }}</td>
+          <td style="font-size:11px;color:var(--text-muted);">
+            {% if e.gross_amount %}Gross:{{ e.gross_amount|floatformat:0|intcomma }} / Tax:{{ e.tax_amount|floatformat:0|intcomma }} / Net:{{ e.net_amount|floatformat:0|intcomma }}{% endif %}
+          </td>
+          <td class="money text-debit">{{ e.credit_amount|floatformat:0|intcomma }}</td>
+          {% else %}
+          <td colspan="4"></td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">No ledger entries.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:var(--bg-light);">
+          <td colspan="3" style="padding:10px;">Totals</td>
+          <td class="money" style="border-right:2px solid var(--border);">{{ total_dr|floatformat:0|intcomma }}</td>
+          <td colspan="3"></td>
+          <td class="money">{{ total_cr|floatformat:0|intcomma }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:48px;color:var(--text-muted);">
+    <i class="fas fa-user-circle" style="font-size:40px;margin-bottom:16px;opacity:.3;"></i>
+    <p>Select a tenant above to view their debtor ledger.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

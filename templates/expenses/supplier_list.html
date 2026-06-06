@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Suppliers{% endblock %}
+{% block page_title %}Suppliers{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'expenses:supplier_create' %}" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i>&nbsp; Add Supplier</a>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="table-container">
+    <table class="rems-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Phone</th><th>Email</th>
+          <th class="money">Invoiced (UGX)</th><th class="money">Paid (UGX)</th><th class="money">Outstanding (UGX)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td><a href="{% url 'expenses:supplier_detail' s.pk %}" style="color:var(--navy);font-weight:600;">{{ s.name }}</a></td>
+          <td>{{ s.phone|default:"—" }}</td>
+          <td>{{ s.email|default:"—" }}</td>
+          <td class="money">{{ s.total_invoiced|floatformat:0|intcomma }}</td>
+          <td class="money">{{ s.total_paid|floatformat:0|intcomma }}</td>
+          <td class="money {% if s.balance_outstanding > 0 %}text-credit{% endif %}">{{ s.balance_outstanding|floatformat:0|intcomma }}</td>
+          <td>
+            <a href="{% url 'expenses:supplier_edit' s.pk %}" class="btn btn-outline btn-sm">Edit</a>
+            <a href="{% url 'expenses:supplier_delete' s.pk %}" class="btn btn-outline btn-sm" style="color:var(--danger);">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No suppliers yet. <a href="{% url 'expenses:supplier_create' %}">Add one.</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

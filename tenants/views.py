@@ -39,16 +39,23 @@ def tenant_create(request):
         tenant.save()
         ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
              or request.META.get('REMOTE_ADDR')
-        # Auto-create opening ledger entry
+        # Auto-create opening ledger entry — first month's charge
+        building = tenant.building
+        monthly_rate = tenant.monthly_rate
+        if not monthly_rate and building.standard_rate:
+            monthly_rate = building.standard_rate
         LedgerEntry.objects.create(
             tenant=tenant,
-            building=tenant.building,
+            building=building,
+            account_type=LedgerEntry.ACCT_DEBTOR,
             entry_date=tenant.lease_start,
+            period_month=tenant.lease_start.month,
+            period_year=tenant.lease_start.year,
             description='Opening balance — Tenant registration',
             entry_type=LedgerEntry.ENTRY_OPENING,
-            debit_amount=tenant.monthly_rate,
+            debit_amount=monthly_rate,
             credit_amount=Decimal('0'),
-            running_balance=tenant.monthly_rate,
+            running_balance=monthly_rate,
             created_by=request.user,
             ip_address=ip,
         )
